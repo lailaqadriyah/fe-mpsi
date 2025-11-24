@@ -8,6 +8,7 @@ import {
   FiEye,
   FiEdit,
   FiTrash2,
+  FiCreditCard, // Tambahan icon untuk header modal
 } from "react-icons/fi";
 import Modal from "../../components/Modal";
 
@@ -63,12 +64,14 @@ const ManajemenKaryawan = () => {
           {karyawanList.map((k, i) => (
             <div
               key={i}
-              className="bg-white rounded-2xl p-5 shadow hover:shadow-md transition"
+              className="bg-white rounded-2xl p-5 shadow hover:shadow-md transition "
             >
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 bg-green-600 text-white flex items-center justify-center rounded-full font-bold text-lg shadow-md">
-                  {k.initial}
-                </div>
+                <div className="w-20 h-20 mb-4 rounded-full flex items-center justify-center text-white font-bold text-3xl 
+                bg-gradient-to-b from-[#2E7D32] to-[#43A047] 
+                shadow-[0_8px_20px_rgba(46,125,50,0.30)]">
+                {k.initial}
+              </div>
                 <div className="">
                   <h3 className="font-bold text-green-800">{k.nama}</h3>
                   <p className="text-sm text-gray-600">{k.posisi}</p>
@@ -81,8 +84,8 @@ const ManajemenKaryawan = () => {
               <div className="mt-5">
                 <button
                   onClick={() => setSelected(k)}
-                  className="w-full bg-gradient-to-r from-blue-100 to-blue-50 text-blue-700 py-2 rounded-lg shadow-sm text-sm"
-                >
+                  className="w-full bg-gradient-to-r from-blue-100 to-blue-50 text-blue-700 py-2 rounded-lg shadow-sm text-sm flex items-center justify-center gap-2"
+                > <FiEye />
                   Lihat
                 </button>
               </div>
@@ -91,130 +94,173 @@ const ManajemenKaryawan = () => {
         </div>
       </main>
 
+      {/* --- MODAL DETAIL KARYAWAN (DIUBAH) --- */}
       {selected && (
-        <Modal title="Detail Data Karyawan" onClose={() => setSelected(null)}>
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-lg">
+        <Modal 
+            title={
+                <div className="flex items-center gap-2 text-[#1B5E20]">
+                    <FiCreditCard className="text-xl" />
+                    <span className="font-bold text-lg">Detail Data Karyawan</span>
+                </div>
+            } 
+            onClose={() => setSelected(null)}
+        >
+          {/* Header Profile */}
+          <div className="flex items-center gap-4 mb-6 mt-2">
+            <div className="w-20 h-20 rounded-full bg-[#2E7D32] text-white flex items-center justify-center font-bold text-3xl shadow-sm">
               {selected.initial}
             </div>
-            <div className="flex-1">
-              <h4 className="font-semibold text-green-800 text-lg">
-                {selected.nama}
-              </h4>
-              <p className="text-sm text-gray-600">{selected.posisi}</p>
-            </div>
-            <div>
-              <button className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-md text-sm flex items-center gap-2">
-                {" "}
-                <FiEdit /> Edit
-              </button>
+            <div className="flex items-center gap-3">
+                <h2 className="font-bold text-[#1B5E20] text-2xl">
+                    {selected.nama}
+                </h2>
+                <button className="bg-[#FFF3E0] hover:bg-orange-100 bg-gradient-to-r from-[#FFE0B2] to-[#FFCC80] text-[#E65100] px-3 py-1 rounded-md text-xs font-bold flex items-center gap-1 transition">
+                    <FiEdit className="text-sm" /> Edit
+                </button>
             </div>
           </div>
 
-          <div className="border-t pt-4 text-sm text-gray-700">
-            <p>
-              <strong>Email:</strong> {selected.email}
-            </p>
-            <p className="mt-2">
-              <strong>Telepon:</strong> {selected.telepon}
-            </p>
-            <p className="mt-2">
-              <strong>Tanggal Bergabung:</strong> {selected.bergabung}
-            </p>
+          {/* List Data dengan Garis Putus-putus */}
+          <div className="space-y-3">
+            
+            <div className="border-b border-dashed border-gray-200 pb-2 text-left">
+                <p className="text-[11px] text-gray-400 mb-0.5">Posisi</p>
+                <p className="font-medium text-gray-800">{selected.posisi}</p>
+            </div>
+
+            <div className="border-b border-dashed border-gray-200 pb-2 text-left">
+                <p className="text-[11px] text-gray-400 mb-1">Status</p>
+                <span className={`inline-block px-3 py-0.5 rounded-full text-[11px] font-bold ${
+                    selected.status === 'Aktif' ? 'bg-gradient-to-r from-[#C8E6C9] to-[#A5D6A7] text-[#1B5E20]' : 'bg-gradient-to-r from-[#FFCDD2] to-[#EF9A9A] text-[#C62828]'
+                }`}>
+                  {selected.status}
+                </span>
+            </div>
+
+            <div className="border-b border-dashed border-gray-200 pb-2 text-left">
+                <p className="text-[11px] text-gray-400 mb-0.5">Email</p>
+                <p className="font-medium text-gray-800">{selected.email}</p>
+            </div>
+
+            <div className="border-b border-dashed border-gray-200 pb-2 text-left">
+                <p className="text-[11px] text-gray-400 mb-0.5">Nomor Telepon</p>
+                <p className="font-medium text-gray-800">{selected.telepon}</p>
+            </div>
+
+            <div className="border-b border-dashed border-gray-200 pb-2 text-left">
+                <p className="text-[11px] text-gray-400 mb-0.5">Tanggal Bergabung</p>
+                <p className="font-medium text-gray-800">{selected.bergabung}</p>
+            </div>
+
           </div>
 
-          <div className="mt-4 bg-gray-50 rounded-md p-4">
-            <h5 className="font-semibold text-sm text-green-800">
+          {/* Ringkasan Kinerja */}
+          <div className="mt-6">
+            <h5 className="font-bold text-[#1B5E20] mb-3 text-left text-lg">
               Ringkasan Kinerja
             </h5>
-            <p className="text-sm text-gray-700">
-              Tingkat kehadiran:{" "}
-              <span className="font-semibold">{selected.kehadiran}%</span>
-            </p>
+            
+            <div className="space-y-3">
+                <div className="border-b border-dashed border-gray-200 pb-2 text-left">
+                    <p className="text-[11px] text-gray-400 mb-0.5">Tugas Selesai</p>
+                    <p className="font-bold text-gray-800">85%</p>
+                </div>
+
+                <div className="border-b border-dashed border-gray-200 pb-2 text-left">
+                    <p className="text-[11px] text-gray-400 mb-0.5">Kehadiran Rata-rata</p>
+                    <p className="font-bold text-gray-800">{selected.kehadiran}%</p>
+                </div>
+            </div>
           </div>
 
-          <div className="flex justify-end gap-3 mt-4">
-            <button
-              onClick={() => setSelected(null)}
-              className="px-4 py-2 rounded-md bg-white border"
-            >
-              Tutup
-            </button>
-            <button className="px-4 py-2 rounded-md bg-red-500 text-white">
-              Hapus
+          {/* Tombol Hapus */}
+          <div className="flex justify-end mt-6">
+            <button className="bg-gradient-to-r from-[#FFCDD2] to-[#EF9A9A] text-[#C62828] hover:bg-red-100 px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition">
+              <FiTrash2 className="text-lg" /> Hapus
             </button>
           </div>
         </Modal>
       )}
 
+      {/* --- MODAL TAMBAH KARYAWAN (DIUBAH) --- */}
       {showAdd && (
-        <Modal title="Tambah Karyawan Baru" onClose={() => setShowAdd(false)}>
+        <Modal 
+            title={
+                <span className="text-2xl font-bold text-[#1B5E20]">Tambah Karyawan Baru</span>
+            } 
+            onClose={() => setShowAdd(false)}
+        >
           <form
             onSubmit={(e) => {
               e.preventDefault();
               setShowAdd(false);
             }}
-            className="space-y-4"
+            className="space-y-4 mt-2"
           >
             <div>
-              <label className="text-sm font-semibold text-gray-700">
+              <label className="text-xs font-bold text-gray-700 block mb-1.5 text-left">
                 Nama Lengkap
               </label>
               <input
                 required
-                className="w-full mt-1 px-3 py-2 rounded-md border"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition placeholder-gray-400"
                 placeholder="Masukkan nama lengkap"
               />
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-gray-700">
+              <label className="text-xs font-bold text-gray-700 block mb-1.5 text-left">
                 Email
               </label>
               <input
                 type="email"
                 required
-                className="w-full mt-1 px-3 py-2 rounded-md border"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition placeholder-gray-400"
                 placeholder="nama@unand.ac.id"
               />
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-gray-700">
+              <label className="text-xs font-bold text-gray-700 block mb-1.5 text-left">
                 Nomor Telepon
               </label>
               <input
-                className="w-full mt-1 px-3 py-2 rounded-md border"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition placeholder-gray-400"
                 placeholder="+62 812-3456-7890"
               />
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-gray-700">
+              <label className="text-xs font-bold text-gray-700 block mb-1.5 text-left">
                 Posisi/Jabatan
               </label>
-              <select className="w-full mt-1 px-3 py-2 rounded-md border">
-                <option>Pustakawan</option>
-                <option>Admin Perpus</option>
-                <option>Referensi</option>
-                <option>Petugas Sirkulasi</option>
-              </select>
+              <div className="relative">
+                <select className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition appearance-none bg-gray-100 text-gray-700">
+                    <option>Pustakawan</option>
+                    <option>Admin Perpus</option>
+                    <option>Referensi</option>
+                    <option>Petugas Sirkulasi</option>
+                </select>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-gray-700">
+              <label className="text-xs font-bold text-gray-700 block mb-1.5 text-left">
                 Tanggal Bergabung
               </label>
               <input
                 type="date"
-                className="w-full mt-1 px-3 py-2 rounded-md border"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition text-gray-600"
               />
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-4">
               <button
                 type="submit"
-                className="bg-gradient-to-r from-green-600 to-green-500 text-white px-6 py-2 rounded-full"
+                className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#2E7D32] text-white px-16  py-2.5 rounded-lg font-bold text-sm shadow-md transition-all"
               >
                 Simpan
               </button>

@@ -12,6 +12,12 @@ import MonitoringAktivitas from './pages/admin/MonitoringAktivitas';
 import LaporanRekap from './pages/admin/Laporan';
 import Absensi from './pages/admin/Absensi';
 import Settings from './pages/admin/Settings';
+import DashboardTendik from './pages/tendik/DashboardTendik';
+import AbsensiDigital from './pages/tendik/AbsensiDigital';
+import LaporanHarian from './pages/tendik/LaporanHarian';
+import DaftarTugas from './pages/tendik/DaftarTugas';
+import RiwayatAktivitas from './pages/tendik/RiwayatAktivitas';
+import Profil from './pages/tendik/Profil';
 
 
 function App() {
@@ -28,6 +34,13 @@ function App() {
           <Route path="/admin/laporan" element={<LaporanRekap />} />
           <Route path="/admin/absensi" element={<Absensi />} />
           <Route path="/admin/settings" element={<Settings />} />
+
+          <Route path="/tendik/dashboardTendik" element={<DashboardTendik />} />
+          <Route path="/tendik/absensiDigital" element={<AbsensiDigital />} />
+          <Route path="/tendik/laporanHarian" element={<LaporanHarian />} />
+          <Route path="/tendik/daftarTugas" element={<DaftarTugas />} />
+          <Route path="/tendik/riwayatAktivitas" element={<RiwayatAktivitas />} />
+          <Route path="/tendik/profil" element={<Profil />} />
           {/* <Route path="/detail-kursus/:id" element={<DetailKursus />} />
           <Route path="/bayar-kursus/:id" element={<Pembayaran />} />
           <Route path="/profile" element={<Profile />} />

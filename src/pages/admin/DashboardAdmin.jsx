@@ -82,7 +82,7 @@ const Dashboard = () => {
                             <tbody className="text-sm text-left">
                                 {absensiData.map((row, i) => (
                                     <tr key={i} className="hover:bg-green-50">
-                                        <Td>{row.nama}</Td>
+                                        <Td className="font-bold">{row.nama}</Td>
                                         <Td>{row.jabatan}</Td>
                                         <Td>{row.in}</Td>
                                         <Td>{row.out}</Td>
@@ -126,7 +126,7 @@ const Dashboard = () => {
                                     {taskData.map((t, i) => (
                                         <tr key={i} className="hover:bg-green-50">
                                             <td className="px-4 py-3">{t.judul}</td>
-                                            <td className="px-4 py-3 font-semibold text-gray-700">{t.kepada}</td>
+                                            <td className="px-4 py-3">{t.kepada}</td>
                                             <td className="px-4 py-3">{t.deadline}</td>
                                             <td className="px-4 py-3"><PriorityBadge level={t.prioritas || t.prioritas} /></td>
                                             <td className="px-4 py-3"><StatusBadge type={t.statusType}>{t.status}</StatusBadge></td>
@@ -166,7 +166,7 @@ const StatCard = ({ icon, value, label, trend, trendUp }) => (
 const QuickButton = ({ icon, label }) => (
     <button className="bg-white shadow hover:shadow-md transition rounded-2xl py-6 flex flex-col items-center gap-3">
         <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center text-green-700 text-xl">{icon}</div>
-        <p className="font-medium text-sm">{label}</p>
+        <p className="font-bold text-sm">{label}</p>
     </button>
 );
 
@@ -196,16 +196,16 @@ const Td = ({ children }) => (
 
 const StatusBadge = ({ children, type }) => {
     const colors = {
-        hadir: "bg-green-100 text-green-700",
-        shift: "bg-orange-100 text-orange-700",
-        belum: "bg-red-100 text-red-700",
-        progress: "bg-yellow-100 text-yellow-700",
-        selesai: "bg-green-100 text-green-700",
-        pending: "bg-orange-100 text-orange-700",
+        hadir: "bg-gradient-to-r from-[#C8E6C9] to-[#A5D6A7] text-[#1B5E20]",
+        shift: "bg-gradient-to-r from-[#FFE0B2] to-[#FFCC80] text-[#E65100]",
+        belum: "bg-gradient-to-r from-[#FFCDD2] to-[#EF9A9A] text-[#C62828]",
+        progress: "bg-gradient-to-r from-[#FFE0B2] to-[#FFCC80] text-[#E65100]",
+        selesai: "bg-gradient-to-r from-[#C8E6C9] to-[#A5D6A7] text-[#1B5E20]",
+        pending: "bg-gradient-to-r from-[#FFCDD2] to-[#EF9A9A] text-[#C62828]",
     };
 
     return (
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors[type]}`}>
+        <span className={`px-3 py-1 rounded-full text-xs font-bold ${colors[type]}`}>
             {children}
         </span>
     );
@@ -214,9 +214,9 @@ const StatusBadge = ({ children, type }) => {
 
 const PriorityBadge = ({ level }) => {
     const color = {
-        Tinggi: "bg-orange-100 text-orange-700",
-        Normal: "bg-green-100 text-green-700",
-        Urgent: "bg-red-100 text-red-700",
+        Tinggi: "bg-gradient-to-r from-[#FFE0B2] to-[#FFCC80] text-[#E65100]",
+        Normal: "bg-gradient-to-r from-[#C8E6C9] to-[#A5D6A7] text-[#1B5E20]",
+        Urgent: "bg-gradient-to-r from-[#FFCDD2] to-[#EF9A9A] text-[#C62828]",
     }[level];
 
     return (
@@ -229,9 +229,15 @@ const PriorityBadge = ({ level }) => {
 
 const ActionButtons = () => (
     <div className="flex gap-2 text-green-700">
-        <button className="p-1 bg-green-100 rounded"><FiEye /></button>
-        <button className="p-1 bg-blue-100 rounded"><FiEdit /></button>
-        <button className="p-1 bg-red-100 rounded"><FiTrash2 /></button>
+        {/* Tombol Lihat (Mata) - Gradasi Biru */}
+        <button className="w-[35px] h-[35px] flex items-center justify-center rounded-lg bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] hover:shadow-sm hover:opacity-90 transition-all text-[#1976D2]">
+            <FiEye className="text-lg" />
+        </button>
+
+        {/* Tombol Edit (Pensil) - Gradasi Merah Muda */}
+        <button className="w-[35px] h-[35px] flex items-center justify-center rounded-lg bg-gradient-to-r from-[#FFEBEE] to-[#FFCDD2] hover:shadow-sm hover:opacity-90 transition-all text-[#D32F2F]">
+            <FiEdit className="text-lg" />
+        </button> 
     </div>
 );
 

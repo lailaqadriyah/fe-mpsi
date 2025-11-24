@@ -11,9 +11,9 @@ const Login = () => {
 
     return (
         <div className="min-h-screen w-full overflow-x-hidden relative flex items-center justify-center 
-                        bg-gradient-to-br from-green-800 via-green-600 to-green-400">
+bg-[linear-gradient(to_right,#1E5128,#2D7F4F,#4E9F3D,#8BC34A)]">
 
-            {/* Circles Background */}
+            {/* Circles Background */}  
             <div className="absolute w-72 h-72 bg-white opacity-20 rounded-full bottom-10 left-10 blur-3xl"></div>
             <div className="absolute w-96 h-96 bg-white opacity-20 rounded-full top-10 right-10 blur-3xl"></div>
 
@@ -22,11 +22,13 @@ const Login = () => {
                 <div className="w-full bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
 
                     {/* LEFT (green) */}
-                    <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-green-800 to-green-600 p-10 relative text-white items-center justify-center">
+                    <div className="hidden md:flex md:w-1/2 bg-[linear-gradient(to_bottom_right,#1B5E20,#2E7D32,#43A047)] p-10 relative text-white items-center justify-center">
 
-                        {/* Decorative circles inside green panel */}
-                        <div className="absolute w-40 h-40 bg-white opacity-10 rounded-full top-4 left-4"></div>
-                        <div className="absolute w-32 h-32 bg-white opacity-10 rounded-full bottom-4 right-6"></div>
+                        {/* Decorative Circles inside Green Panel (Corner Curves) */}
+                        {/* Top Left Curve */}
+                        <div className="absolute -top-12 -left-12 w-40 h-40 bg-white opacity-10 rounded-full pointer-events-none"></div>
+                        {/* Bottom Right Curve */}
+                        <div className="absolute -bottom-16 -right-16 w-56 h-56 bg-white opacity-10 rounded-full pointer-events-none"></div>
 
                         <div className="w-full">
                             <div className="flex justify-center mb-6">
@@ -53,7 +55,7 @@ const Login = () => {
 
                     {/* RIGHT (white) */}
                     <div className="w-full md:w-1/2 p-10 bg-white">
-                        <h2 className="text-3xl font-bold text-green-700 mb-1">Selamat Datang!</h2>
+                        <h2 className="text-3xl font-bold text-[#1B5E20] mb-1">Selamat Datang!</h2>
                         <p className="text-gray-500 mb-6">Silakan masuk untuk melanjutkan</p>
 
                         <form className="space-y-4">
@@ -99,18 +101,18 @@ const Login = () => {
                                     <span className="ml-2 text-sm text-gray-600">Ingat saya</span>
                                 </label>
 
-                                <button className="text-sm text-green-600 hover:underline">Lupa Password?</button>
+                                <button className="text-sm font-bold text-green-600 hover:underline">Lupa Password?</button>
                             </div>
 
                             {/* Button */}
                             <Link to="/admin/dashboard">
-                            <button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 mb-4">
+                            <button className="w-full bg-gradient-to-r from-[#2E7D32] via-[#43A047] to-[#66BB6A] hover:bg-green-700 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 mb-4">
                                 <span>Masuk</span>
                             </button>
                             </Link>
 
                             {/* Info */}
-                            <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div className="flex items-start gap-2 bg-[linear-gradient(to_right,#E8F5E9,#C8E6C9)] rounded-lg p-3">
                                 <FiInfo className="text-green-600 mt-0.5" />
                                 <p className="text-xs text-green-700">Login otomatis mendeteksi role berdasarkan email Anda</p>
                             </div>
