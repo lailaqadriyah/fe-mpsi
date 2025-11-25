@@ -3,7 +3,7 @@ import { FiBell, FiLogOut } from "react-icons/fi";
 
 const Topbar = ({ title, subtitle }) => {
   return (
-    <div className="sticky top-0 z-30 mb-6">
+    <div className="sticky top-0 z-30">
       <div className="bg-white py-3 rounded-md shadow-sm flex items-center justify-between">
         <div>
           <h1 className="text-lg md:text-2xl font-bold text-green-700 px-6">

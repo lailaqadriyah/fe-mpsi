@@ -33,7 +33,7 @@ const ManajemenKaryawan = () => {
             <div className="w-full flex justify-end pr-8">
           <button
             onClick={() => setShowAdd(true)}
-            className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white px-4 py-2 rounded-lg font-semibold text-sm shadow"
+            className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white px-4 py-2 rounded-lg font-semibold text-sm shadow mt-6"
           >
             + Tambah Karyawan
           </button>
