@@ -60,7 +60,7 @@ const ManajemenKaryawan = () => {
         </div>
 
         {/* Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-16 mb-8">
           {karyawanList.map((k, i) => (
             <div
               key={i}

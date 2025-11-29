@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Aside from "../../components/Aside";
+import Topbar from "../../components/Topbar";
 import {
     FiCalendar,
     FiEye,
@@ -27,36 +28,17 @@ const ManajemenTugas = () => {
             <Aside />
 
             {/* Main Content */}
-            <main className="flex-1 p-8 overflow-y-auto">
+            <main
+        className={`flex-1 bg-gradient-to-b from-[#E8F5E9] via-[#E8F5E9] to-[#DCEDC8] overflow-y-auto transition-all`}
+      >
 
-                {/* HEADER SECTION */}
-                <div className="flex justify-between items-start mb-8">
-                    <div>
-                        <h1 className="text-2xl font-bold text-green-800">Manajemen Tugas</h1>
-                        <p className="text-gray-500 text-sm mt-1">
-                            Kelola dan monitor tugas karyawan
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100 gap-3">
-                            <div className="w-9 h-9 flex items-center justify-center bg-green-600 text-white rounded-full font-bold text-sm">
-                                A
-                            </div>
-                            <div className="hidden md:block">
-                                <p className="text-sm font-semibold text-gray-800">Admin</p>
-                                <p className="text-xs text-gray-500">Administrator</p>
-                            </div>
-                        </div>
-
-                        <button className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-full text-sm font-medium shadow-sm transition">
-                            Logout
-                        </button>
-                    </div>
-                </div>
+                <Topbar
+          title="Manajemen Tugas"
+          subtitle="Kelola dan monitor tugas karyawan"
+        />
 
                 {/* STATS CARDS */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-8">
                     {stats.map((s, i) => (
                         <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-32">
                             <h3 className={`text-4xl font-bold ${s.color}`}>{s.value}</h3>
@@ -66,27 +48,27 @@ const ManajemenTugas = () => {
                 </div>
 
                 {/* ACTION BUTTON & TABS SECTION */}
-                <div className="flex flex-col gap-4 mb-6">
+                <div className="flex flex-col gap-4">
                     
                     {/* 1. Tombol Buat Tugas (Aligned Right) */}
-                    <div className="flex justify-end">
+                    <div className="flex justify-end mr-8">
                         <button 
                             onClick={() => setShowTaskModal(true)} 
-                            className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg shadow-md font-medium text-sm flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
+                            className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-green-700 text-white px-5 py-2.5 rounded-lg shadow-md font-medium text-sm flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
                         >
                             <FiPlus className="text-lg" /> Buat Tugas Baru
                         </button>
                     </div>
 
                     {/* 2. Tab Navigation Bar (White Container) */}
-                    <div className="bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 flex flex-wrap sm:flex-nowrap overflow-x-auto">
+                    <div className="bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 flex flex-wrap sm:flex-nowrap overflow-x-auto mr-8 ml-8">
                         {tabs.map((t, i) => (
                             <button
                                 key={i}
                                 onClick={() => setActiveTab(i)}
                                 className={`flex-1 text-center px-4 py-3 text-sm font-semibold transition-all duration-200 rounded-lg whitespace-nowrap ${
                                     i === activeTab 
-                                    ? 'bg-green-600 text-white shadow-sm' 
+                                    ? 'bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white shadow-sm' 
                                     : 'text-gray-600 hover:bg-gray-50'
                                 }`}
                             >
@@ -97,7 +79,7 @@ const ManajemenTugas = () => {
                 </div>
 
                 {/* TASK LIST CARDS */}
-                <div className="space-y-5">
+                <div className="space-y-5 p-8">
                     {(() => {
                         const filtered = activeTab === 0 ? tasks : tasks.filter(t => t.status === tabs[activeTab]);
                         
@@ -121,7 +103,7 @@ const ManajemenTugas = () => {
                                 </div>
 
                                 {/* Description */}
-                                <p className="text-gray-500 text-sm mb-6 line-clamp-2">
+                                <p className="text-gray-500 text-sm mb-6 line-clamp-2 text-left">
                                     {task.deskripsi}
                                 </p>
 
@@ -182,7 +164,7 @@ const ManajemenTugas = () => {
                     <Modal title="Detail Tugas" onClose={() => setSelectedTask(null)}>
                         <div className="space-y-4 text-sm">
                             <div>
-                                <h4 className="font-bold text-lg text-green-800 mb-1">{selectedTask.judul}</h4>
+                                <h4 className="font-extrabold text-lg text-green-800 mb-1">{selectedTask.judul}</h4>
                                 <StatusBadge status={selectedTask.status} />
                             </div>
                             
@@ -223,10 +205,10 @@ export default ManajemenTugas;
 
 const StatusBadge = ({ status }) => {
     const styles = {
-        "Dalam Progress": "bg-blue-100 text-blue-700",
-        "Pending": "bg-orange-100 text-orange-700",
-        "Selesai": "bg-green-100 text-green-700",
-        "Terlambat": "bg-red-100 text-red-700"
+        "Dalam Progress": "bg-gradient-to-r from-[#BBDEFB] to-[#90CAF9] text-[#0D47A1]",
+        "Pending": "bg-gradient-to-r from-[#FFE0B2] to-[#FFCC80] text-[#E65100]",
+        "Selesai": "bg-gradient-to-r from-[#C8E6C9] to-[#A5D6A7] text-[#1B5E20]",
+        "Terlambat": "bg-gradient-to-r from-[#FFCDD2] to-[#EF9A9A] text-[#C62828]"
     };
 
     return (
@@ -252,83 +234,144 @@ const PrioritasBadge = ({ prioritas }) => {
 
 const ActionButton = ({ color, icon, label, onClick }) => {
     const colors = {
-        blue: "bg-blue-100 text-blue-600 hover:bg-blue-200",
-        yellow: "bg-orange-100 text-orange-600 hover:bg-orange-200", // Adjusted to match 'Edit' usually being yellowish/orange
-        red: "bg-red-100 text-red-600 hover:bg-red-200",
+        // Detail: Gradasi Biru
+        blue: "bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] text-[#1976D2] hover:shadow-md",
+        
+        // Edit: Gradasi Kuning/Oranye
+        yellow: "bg-gradient-to-r from-[#FFF3E0] to-[#FFE0B2] text-[#EF6C00] hover:shadow-md",
+        
+        // Hapus: Gradasi Merah
+        red: "bg-gradient-to-r from-[#FFEBEE] to-[#FFCDD2] text-[#C62828] hover:shadow-md",
     };
 
     return (
         <button 
             type="button" 
             onClick={onClick} 
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${colors[color]}`}
+            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-[10px] text-sm font-bold transition-all duration-200 ${colors[color]}`}
         >
-            {icon} {label}
+            <span className="text-lg">{icon}</span>
+            {label}
         </button>
     );
 };
 
-/* --- FORM COMPONENT --- */
-const TaskForm = ({ onCancel, onSave }) => {
+/* --- FORM COMPONENT (UPDATED FOR MODAL UI) --- */
+const TaskForm = ({ onSave }) => {
     const [judul, setJudul] = useState("");
     const [deskripsi, setDeskripsi] = useState("");
-    const [assignee, setAssignee] = useState("Ahmad Fauzi");
+    const [assignee, setAssignee] = useState("Pilih Karyawan");
     const [deadline, setDeadline] = useState("");
-    const [prioritas, setPrioritas] = useState("Prioritas Normal");
+    const [prioritas, setPrioritas] = useState("Tinggi");
     const [status, setStatus] = useState("Pending");
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        // Validasi sederhana
+        if(assignee === "Pilih Karyawan") {
+            alert("Silakan pilih karyawan terlebih dahulu");
+            return;
+        }
         onSave({ judul, deskripsi, assignee, deadline, prioritas, status });
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5 mt-2">
+            
+            {/* Judul Tugas */}
             <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-1">Judul Tugas</label>
-                <input required value={judul} onChange={e => setJudul(e.target.value)} className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-green-500 outline-none" placeholder="Contoh: Inventarisasi Buku" />
+                <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Judul Tugas</label>
+                <input 
+                    required 
+                    value={judul} 
+                    onChange={e => setJudul(e.target.value)} 
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition placeholder-gray-400" 
+                    placeholder="Masukkan judul tugas" 
+                />
             </div>
+
+            {/* Deskripsi */}
             <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-1">Deskripsi</label>
-                <textarea rows={3} value={deskripsi} onChange={e => setDeskripsi(e.target.value)} className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-green-500 outline-none" placeholder="Deskripsi detail..." />
+                <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Deskripsi</label>
+                <textarea 
+                    rows={3} 
+                    value={deskripsi} 
+                    onChange={e => setDeskripsi(e.target.value)} 
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition placeholder-gray-400" 
+                    placeholder="Deskripsi detail tugas" 
+                />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="text-sm font-semibold text-gray-700 block mb-1">Karyawan</label>
-                    <select value={assignee} onChange={e => setAssignee(e.target.value)} className="w-full px-4 py-2 rounded-lg border">
+
+            {/* Ditugaskan Kepada */}
+            <div>
+                <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Ditugaskan Kepada</label>
+                <div className="relative">
+                    <select value={assignee} onChange={e => setAssignee(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition appearance-none bg-gray-100 text-gray-700 cursor-pointer">
+                        <option disabled>Pilih Karyawan</option>
                         <option>Ahmad Fauzi</option>
                         <option>Siti Rahma</option>
                         <option>Dewi Lestari</option>
                         <option>Eko Prasetyo</option>
+                        <option>Budi Santoso</option>
                     </select>
-                </div>
-                <div>
-                    <label className="text-sm font-semibold text-gray-700 block mb-1">Deadline</label>
-                    <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full px-4 py-2 rounded-lg border" />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="text-sm font-semibold text-gray-700 block mb-1">Prioritas</label>
-                    <select value={prioritas} onChange={e => setPrioritas(e.target.value)} className="w-full px-4 py-2 rounded-lg border">
+
+            {/* Deadline */}
+            <div>
+                <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Deadline</label>
+                <div className="relative w-48">
+                    <input 
+                        type="date" 
+                        value={deadline} 
+                        onChange={e => setDeadline(e.target.value)} 
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition text-gray-600 cursor-pointer" 
+                    />
+                </div>
+            </div>
+
+            {/* Prioritas */}
+            <div>
+                <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Prioritas</label>
+                <div className="relative">
+                    <select value={prioritas} onChange={e => setPrioritas(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition appearance-none bg-gray-100 text-gray-700 cursor-pointer">
+                        <option>Tinggi</option>
                         <option>Prioritas Normal</option>
-                        <option>Prioritas Tinggi</option>
                         <option>Urgent</option>
                     </select>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
                 </div>
-                <div>
-                    <label className="text-sm font-semibold text-gray-700 block mb-1">Status</label>
-                    <select value={status} onChange={e => setStatus(e.target.value)} className="w-full px-4 py-2 rounded-lg border">
+            </div>
+
+            {/* Status */}
+            <div>
+                <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Status</label>
+                <div className="relative">
+                    <select value={status} onChange={e => setStatus(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition appearance-none bg-gray-100 text-gray-700 cursor-pointer">
                         <option>Pending</option>
                         <option>Dalam Progress</option>
                         <option>Selesai</option>
                         <option>Terlambat</option>
                     </select>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
                 </div>
             </div>
-            <div className="flex justify-end gap-3 mt-4">
-                <button type="button" onClick={onCancel} className="px-5 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200">Batal</button>
-                <button type="submit" className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow">Simpan</button>
+
+            {/* Footer Button (Hanya Simpan) */}
+            <div className="flex justify-end pt-6">
+                <button 
+                    type="submit" 
+                    className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#2E7D32] text-white px-10 py-2.5 rounded-lg font-bold text-sm shadow-md transition-all active:scale-95"
+                >
+                    Simpan Tugas
+                </button>
             </div>
         </form>
     )
@@ -339,10 +382,30 @@ const TaskForm = ({ onCancel, onSave }) => {
 const tabs = ["Semua Tugas", "Pending", "Dalam Progress", "Selesai", "Terlambat"];
 
 const stats = [
-    { label: "Tugas Pending", value: 8, color: "text-orange-500" },
-    { label: "Dalam Progress", value: 12, color: "text-blue-500" },
-    { label: "Selesai", value: 45, color: "text-green-600" },
-    { label: "Terlambat", value: 3, color: "text-red-500" },
+    { 
+        label: "Tugas Pending", 
+        value: 8, 
+        // Gradasi Orange (Sesuai gambar image_29c5fc.jpg: #F57C00 -> #FFB74D)
+        color: "bg-gradient-to-r from-[#F57C00] to-[#FFB74D] bg-clip-text text-transparent" 
+    },
+    { 
+        label: "Dalam Progress", 
+        value: 12, 
+        // Gradasi Biru (Sesuai gambar image_29c61c.jpg: #0288D1 -> #4FC3F7)
+        color: "bg-gradient-to-r from-[#0288D1] to-[#4FC3F7] bg-clip-text text-transparent" 
+    },
+    { 
+        label: "Selesai", 
+        value: 45, 
+        // Gradasi Hijau (Sesuai gambar sebelumnya)
+        color: "bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] bg-clip-text text-transparent" 
+    },
+    { 
+        label: "Terlambat", 
+        value: 3, 
+        // Gradasi Merah (Sesuai gambar sebelumnya)
+        color: "bg-gradient-to-r from-[#C62828] to-[#EF5350] bg-clip-text text-transparent" 
+    },
 ];
 
 const taskList = [
