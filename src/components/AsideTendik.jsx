@@ -33,24 +33,24 @@ const AsideTendik = () => {
                     <div>
                         <p className="text-xs uppercase opacity-70 tracking-wider mb-3 text-left">Main Menu</p>
                         <nav className="space-y-2">
-                            <Link to="/staff/dashboard">
-                                <Item icon={<FiGrid />} label="Dashboard" active={pathname === "/staff/dashboard"} />
+                            <Link to="/tendik/dashboardTendik">
+                                <Item icon={<FiGrid />} label="Dashboard" active={pathname === "/tendik/dashboard"} />
                             </Link>
 
-                            <Link to="/staff/absensi">
-                                <Item icon={<FiCalendar />} label="Absensi Digital" active={pathname === "/staff/absensi"} />
+                            <Link to="/tendik/absensiDigital">
+                                <Item icon={<FiCalendar />} label="Absensi Digital" active={pathname === "/tendik/absensi"} />
                             </Link>
 
-                            <Link to="/staff/laporan">
-                                <Item icon={<FiFileText />} label="Laporan Harian" active={pathname === "/staff/laporan"} />
+                            <Link to="/tendik/laporanHarian">
+                                <Item icon={<FiFileText />} label="Laporan Harian" active={pathname === "/tendik/laporan"} />
                             </Link>
 
-                            <Link to="/staff/tugas">
-                                <Item icon={<FiList />} label="Daftar Tugas" active={pathname === "/staff/tugas"} />
+                            <Link to="/tendik/daftarTugas">
+                                <Item icon={<FiList />} label="Daftar Tugas" active={pathname === "/tendik/tugas"} />
                             </Link>
 
-                            <Link to="/staff/riwayat">
-                                <Item icon={<FiRepeat />} label="Riwayat Aktivitas" active={pathname === "/staff/riwayat"} />
+                            <Link to="/tendik/riwayatAktivitas">
+                                <Item icon={<FiRepeat />} label="Riwayat Aktivitas" active={pathname === "/tendik/riwayat"} />
                             </Link>
                         </nav>
                     </div>
@@ -58,8 +58,8 @@ const AsideTendik = () => {
                     <div>
                         <p className="text-xs uppercase opacity-70 tracking-wider mb-3 text-left">Settings</p>
                         <nav className="space-y-2">
-                            <Link to="/staff/profile">
-                                <Item icon={<FiUser />} label="Profil Saya" active={pathname === "/staff/profile"} />
+                            <Link to="/tendik/profil">
+                                <Item icon={<FiUser />} label="Profil Saya" active={pathname === "/tendik/profile"} />
                             </Link>
                         </nav>
                     </div>

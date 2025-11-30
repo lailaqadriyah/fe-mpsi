@@ -1,13 +1,53 @@
 import React, { useState } from "react";
 import { FiMail, FiLock, FiInfo } from "react-icons/fi";
-import unandLogo from "../../assets/img/unand.png";
-import { Link } from "react-router-dom";
-
+// Menggunakan path absolut untuk menghindari masalah relative path yang terlalu dalam
+import unandLogo from "/src/assets/img/unand.png"; 
+import { useNavigate } from "react-router-dom"; 
 
 const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [rememberMe, setRememberMe] = useState(false);
+    const [loading, setLoading] = useState(false); 
+    const navigate = useNavigate();
+
+    const handleLogin = async (e) => {
+        e.preventDefault(); 
+        setLoading(true);
+
+        try {
+            // 1. Kirim data ke Backend
+            const response = await fetch("http://localhost:4000/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // 2. Jika sukses, simpan Token & Data User
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("user", JSON.stringify(data.user));
+
+                // 3. Cek Role untuk Redirect
+                if (data.user.role === 'ADMIN') {
+                    navigate("/admin/dashboard");
+                } else {
+                    // Redirect ke dashboard tendik sesuai App.jsx
+                    navigate("/tendik/dashboardTendik");
+                }
+            } else {
+                // Jika gagal (password salah, user tidak ada, dll)
+                alert(data.message || "Login Gagal! Periksa email dan password Anda.");
+            }
+        } catch (error) {
+            console.error("Login Error:", error);
+            alert("Gagal terhubung ke server. Pastikan Backend sudah jalan!");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="min-h-screen w-full overflow-x-hidden relative flex items-center justify-center 
@@ -25,9 +65,7 @@ bg-[linear-gradient(to_right,#1E5128,#2D7F4F,#4E9F3D,#8BC34A)]">
                     <div className="hidden md:flex md:w-1/2 bg-[linear-gradient(to_bottom_right,#1B5E20,#2E7D32,#43A047)] p-10 relative text-white items-center justify-center">
 
                         {/* Decorative Circles inside Green Panel (Corner Curves) */}
-                        {/* Top Left Curve */}
                         <div className="absolute -top-12 -left-12 w-40 h-40 bg-white opacity-10 rounded-full pointer-events-none"></div>
-                        {/* Bottom Right Curve */}
                         <div className="absolute -bottom-16 -right-16 w-56 h-56 bg-white opacity-10 rounded-full pointer-events-none"></div>
 
                         <div className="w-full">
@@ -58,7 +96,7 @@ bg-[linear-gradient(to_right,#1E5128,#2D7F4F,#4E9F3D,#8BC34A)]">
                         <h2 className="text-3xl font-bold text-[#1B5E20] mb-1">Selamat Datang!</h2>
                         <p className="text-gray-500 mb-6">Silakan masuk untuk melanjutkan</p>
 
-                        <form className="space-y-4">
+                        <form className="space-y-4" onSubmit={handleLogin}>
                             {/* Email */}
                             <div>
                                 <label className="text-sm font-medium text-gray-700">Email</label>
@@ -66,6 +104,7 @@ bg-[linear-gradient(to_right,#1E5128,#2D7F4F,#4E9F3D,#8BC34A)]">
                                     <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                     <input
                                         type="email"
+                                        required
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         placeholder="nama@unand.ac.id"
@@ -81,6 +120,7 @@ bg-[linear-gradient(to_right,#1E5128,#2D7F4F,#4E9F3D,#8BC34A)]">
                                     <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                     <input
                                         type="password"
+                                        required
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder="Masukkan password Anda"
@@ -92,24 +132,21 @@ bg-[linear-gradient(to_right,#1E5128,#2D7F4F,#4E9F3D,#8BC34A)]">
                             {/* Remember & Forgot */}
                             <div className="flex items-center justify-between">
                                 <label className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        checked={rememberMe}
-                                        onChange={(e) => setRememberMe(e.target.checked)}
-                                        className="w-4 h-4 text-green-600 border-gray-300 rounded"
-                                    />
-                                    <span className="ml-2 text-sm text-gray-600">Ingat saya</span>
+                                    
+                                    
                                 </label>
 
-                                <button className="text-sm font-bold text-green-600 hover:underline">Lupa Password?</button>
+                                
                             </div>
 
                             {/* Button */}
-                            <Link to="/admin/dashboard">
-                            <button className="w-full bg-gradient-to-r from-[#2E7D32] via-[#43A047] to-[#66BB6A] hover:bg-green-700 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 mb-4">
-                                <span>Masuk</span>
+                            <button 
+                                type="submit" 
+                                disabled={loading}
+                                className="w-full bg-gradient-to-r from-[#2E7D32] via-[#43A047] to-[#66BB6A] hover:bg-green-700 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 mb-4 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+                            >
+                                <span>{loading ? "Memproses..." : "Masuk"}</span>
                             </button>
-                            </Link>
 
                             {/* Info */}
                             <div className="flex items-start gap-2 bg-[linear-gradient(to_right,#E8F5E9,#C8E6C9)] rounded-lg p-3">
