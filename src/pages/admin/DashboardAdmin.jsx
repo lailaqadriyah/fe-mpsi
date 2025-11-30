@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; 
 import icon1 from "../../assets/icon/ds1.png";
 import icon2 from "../../assets/icon/ds2.png";
 import icon3 from "../../assets/icon/ds3.png";
@@ -11,16 +12,18 @@ import Topbar from "../../components/Topbar";
 import { FiClock, FiList, FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
 
 const Dashboard = () => {
-    // 1. Siapkan State untuk menampung data dari Backend
+
+    const navigate = useNavigate();
+
     const [stats, setStats] = useState({
         totalUsers: 0,
         presentToday: 0,
         tasksDoneToday: 0,
         reportsToday: 0
     });
+
     const [loading, setLoading] = useState(true);
 
-    // 2. Fungsi Fetch Data dari API
     useEffect(() => {
         const fetchDashboardData = async () => {
             const token = localStorage.getItem("token");
@@ -30,14 +33,14 @@ const Dashboard = () => {
                 const response = await fetch("http://localhost:4000/api/admin/dashboard", {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`, // Wajib bawa token!
+                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json"
                     }
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    setStats(data); // Simpan data ke state
+                    setStats(data);
                 } else {
                     console.error("Gagal mengambil data dashboard");
                 }
@@ -54,16 +57,12 @@ const Dashboard = () => {
     return (
         <div className="flex bg-gradient-to-b from-[#E8F5E9] via-[#E8F5E9] to-[#DCEDC8] min-h-screen">
 
-            {/* Sidebar */}
             <Aside />
 
-            {/* Main Content */}
             <main className="flex-1 bg-gradient-to-b from-[#E8F5E9] via-[#E8F5E9] to-[#DCEDC8] overflow-y-auto">
 
-                {/* HEADER */}
                 <Topbar title="Dashboard Admin" />
 
-                {/* STAT CARDS - SEKARANG PAKAI DATA ASLI */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 p-8 text-left">
                     <StatCard 
                         icon={<img src={icon1} alt="karyawan"/>} 
@@ -88,14 +87,22 @@ const Dashboard = () => {
                     />
                 </div>
 
-                {/* QUICK ACTIONS */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 px-8">
-                    <QuickButton label="Tambah Karyawan" icon={<img src={icon4} alt="add"/>} />
-                    <QuickButton label="Buat Tugas Baru" icon={<img src={icon5} alt="task"/>}  />
+                    
+                    {/* 🔥 Quick Action Tambah Karyawan */}
+                    <QuickButton 
+                        label="Tambah Karyawan" 
+                        icon={<img src={icon4} alt="add"/>} 
+                        onClick={() => navigate("/admin/manajemenKaryawan", {
+                            state: { openAddModal: true }
+                        })}
+                    />
+
+                    <QuickButton label="Buat Tugas Baru" icon={<img src={icon5} alt="task"/>} />
                     <QuickButton label="Export Laporan" icon={<img src={icon6} alt="export"/>} />
                 </div>
 
-                {/* ABSENSI (Contoh Statis - Nanti diintegrasikan di tahap selanjutnya) */}
+                {/* ABSENSI DUMMY */}
                 <div className="p-8">
                     <div className="bg-white rounded-xl shadow p-6">
                         <div className="flex items-center justify-between mb-4 px-2">
@@ -131,9 +138,7 @@ const Dashboard = () => {
                                             <Td>{row.out}</Td>
                                             <Td>{row.durasi}</Td>
                                             <Td><StatusBadge type={row.statusType}>{row.status}</StatusBadge></Td>
-                                            <Td>
-                                                <ActionButtons />
-                                            </Td>
+                                            <Td><ActionButtons /></Td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -150,7 +155,9 @@ const Dashboard = () => {
                                 <FiList className="text-green-700" />
                                 Tugas Terbaru (Contoh)
                             </h3>
-                            <button className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white px-4 py-2 rounded-lg font-semibold text-sm shadow">+ Tambah Tugas</button>
+                            <button className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white px-4 py-2 rounded-lg font-semibold text-sm shadow">
+                                + Tambah Tugas
+                            </button>
                         </div>
 
                         <div className="overflow-x-auto">
@@ -171,7 +178,7 @@ const Dashboard = () => {
                                             <td className="px-4 py-3">{t.judul}</td>
                                             <td className="px-4 py-3">{t.kepada}</td>
                                             <td className="px-4 py-3">{t.deadline}</td>
-                                            <td className="px-4 py-3"><PriorityBadge level={t.prioritas || t.prioritas} /></td>
+                                            <td className="px-4 py-3"><PriorityBadge level={t.prioritas} /></td>
                                             <td className="px-4 py-3"><StatusBadge type={t.statusType}>{t.status}</StatusBadge></td>
                                             <td className="px-4 py-3"><ActionButtons /></td>
                                         </tr>
@@ -179,9 +186,9 @@ const Dashboard = () => {
                                 </tbody>
                             </table>
                         </div>
+
                     </div>
                 </div>
-
             </main>
         </div>
     );
@@ -189,7 +196,10 @@ const Dashboard = () => {
 
 export default Dashboard;
 
-// --- Sub Komponen (Tidak Berubah Banyak) ---
+
+// =========================
+//   SUB-KOMPONEN
+// =========================
 
 const StatCard = ({ icon, value, label, trend, trendUp }) => (
     <div className="bg-white shadow rounded-2xl p-5 flex gap-4 items-center justify-center">
@@ -204,8 +214,11 @@ const StatCard = ({ icon, value, label, trend, trendUp }) => (
     </div>
 );
 
-const QuickButton = ({ icon, label }) => (
-    <button className="bg-white shadow hover:shadow-md transition rounded-2xl py-6 flex flex-col items-center gap-3">
+const QuickButton = ({ icon, label, onClick }) => (
+    <button 
+        onClick={onClick}
+        className="bg-white shadow hover:shadow-md transition rounded-2xl py-6 flex flex-col items-center gap-3"
+    >
         <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center text-green-700 text-xl">{icon}</div>
         <p className="font-bold text-sm">{label}</p>
     </button>
@@ -261,7 +274,7 @@ const ActionButtons = () => (
     </div>
 );
 
-// DATA DUMMY SEMENTARA UNTUK TABEL (Nanti kita ganti juga)
+// DUMMY DATA
 const absensiData = [
     { nama: "Ahmad Fauzi", jabatan: "Pustakawan", in: "08:00", out: "17:00", durasi: "9 jam", status: "Hadir", statusType: "hadir" },
     { nama: "Siti Rahma", jabatan: "Admin Perpus", in: "08:15", out: "-", durasi: "6 jam 45 menit", status: "Dalam Shift", statusType: "shift" },
