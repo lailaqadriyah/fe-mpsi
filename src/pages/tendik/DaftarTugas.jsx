@@ -1,190 +1,230 @@
 import React, { useState } from "react";
 import AsideTendik from "../../components/AsideTendik";
 import Topbar from "../../components/Topbar";
-import { FiCalendar, FiEye, FiEdit, FiTrash2, FiFlag, FiPlus } from "react-icons/fi";
+import {
+  FiCalendar,
+  FiFlag,
+  FiUser,
+  FiCheckCircle,
+  FiMessageSquare,
+  FiPlayCircle,
+  FiEye
+} from "react-icons/fi";
 import Modal from "../../components/Modal";
 
 const DaftarTugas = () => {
   const [tasks, setTasks] = useState(initialTasks);
-  const [activeTab, setActiveTab] = useState(0);
-  const [showCreate, setShowCreate] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const [activeTab, setActiveTab] = useState("Semua Tugas");
+  const [selectedTask, setSelectedTask] = useState(null);
 
-  const initials = (name) => name.split(" ").map(n=>n[0]).slice(0,2).join("").toUpperCase();
+  // Tab Filters
+  const tabs = ["Semua Tugas", "Baru", "Sedang Dikerjakan", "Selesai"];
+
+  // Stats Data
+  const stats = [
+    { label: "Tugas Baru", value: 2, color: "text-orange-500" },
+    { label: "Sedang Dikerjakan", value: 3, color: "text-blue-500" },
+    { label: "Selesai Bulan Ini", value: 15, color: "text-green-600" },
+  ];
 
   return (
-    <div className="flex bg-[#f3fff5] min-h-screen">
+    <div className="flex bg-gradient-to-b from-[#E8F5E9] via-[#E8F5E9] to-[#DCEDC8] min-h-screen">
       <AsideTendik />
 
-      <main className="flex-1 p-8">
-        <Topbar title="Daftar Tugas" subtitle="Kelola dan selesaikan tugas yang diberikan" />
+      <main className="flex-1">
+        <Topbar
+          title="Daftar Tugas"
+          subtitle="Kelola dan selesaikan tugas yang diberikan"
+        />
 
-        <div className="flex justify-end mb-4">
-          <button onClick={()=>setShowCreate(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg shadow"><FiPlus/> Tambah Tugas</button>
-        </div>
-
-        {/* Tabs */}
-        <div className="bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 mb-6">
-          {tabs.map((t,i)=>(
-            <button key={i} onClick={()=>setActiveTab(i)} className={`px-4 py-3 text-sm font-semibold ${i===activeTab? 'bg-green-600 text-white rounded-lg' : 'text-gray-600 hover:bg-gray-50'} mr-2`}>{t}</button>
+        {/* STATS CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8">
+          {stats.map((s, i) => (
+            <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-32">
+              <h3 className={`text-4xl font-bold ${s.color}`}>{s.value}</h3>
+              <p className="text-gray-500 text-sm mt-2 font-medium">{s.label}</p>
+            </div>
           ))}
         </div>
 
-        <div className="space-y-4">
+        {/* FILTER TABS (Transparent Style) */}
+        <div className="bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 flex flex-wrap sm:flex-nowrap overflow-x-auto mr-8 ml-8">
+                        {tabs.map((t, i) => (
+                            <button
+                                key={i}
+                                onClick={() => setActiveTab(i)}
+                                className={`flex-1 text-center px-4 py-3 text-sm font-semibold transition-all duration-200 rounded-lg whitespace-nowrap ${
+                                    i === activeTab 
+                                    ? 'bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white shadow-sm' 
+                                    : 'text-gray-600 hover:bg-gray-50'
+                                }`}
+                            >
+                                {t}
+                            </button>
+                        ))}
+                    </div>
+
+        {/* TASK LIST */}
+        <div className="space-y-5 p-8">
           {(() => {
-            const filtered = activeTab===0 ? tasks : tasks.filter(tt => tt.status === tabs[activeTab]);
-            if(filtered.length===0) return <div className="bg-white p-6 rounded-xl shadow text-center text-gray-500">Tidak ada tugas untuk kategori ini.</div>
-            return filtered.map((task,i)=> (
-              <div key={i} className="bg-white p-6 rounded-xl shadow flex flex-col gap-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-bold text-green-800">{task.judul}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{task.deskripsi}</p>
-                  </div>
-                  <StatusBadge status={task.status} />
+            const filtered = activeTab === "Semua Tugas" 
+                ? tasks 
+                : tasks.filter((tt) => tt.status === activeTab);
+
+            if (filtered.length === 0) {
+              return (
+                <div className="bg-white p-10 rounded-xl shadow-sm border border-gray-100 text-center text-gray-500">
+                  Tidak ada tugas untuk kategori ini.
+                </div>
+              );
+            }
+
+            return filtered.map((task, i) => (
+              <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative">
+                
+                {/* Header: Title & Status Badge */}
+                <div className="flex justify-between items-start mb-2 pr-28"> 
+                  {/* pr-28 agar judul tidak menabrak badge status */}
+                  <h3 className="text-lg font-bold text-gray-800 leading-tight">{task.judul}</h3>
+                </div>
+                
+                {/* Status Badge (Absolute Top Right) */}
+                <div className="absolute top-6 right-6">
+                    <StatusBadge status={task.status} />
                 </div>
 
-                <div className="flex items-center gap-6 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-green-700 text-white flex items-center justify-center text-xs font-bold">{task.initial}</div>
-                    <div className="font-medium">{task.nama}</div>
-                  </div>
+                {/* Description */}
+                <p className="text-gray-500 text-sm mb-5 leading-relaxed max-w-4xl">
+                  {task.deskripsi}
+                </p>
 
-                  <div className="flex items-center gap-2"><FiCalendar className="text-green-600" /> <span>Deadline: {task.deadline}</span></div>
-                  <div className="flex items-center gap-2"><FiFlag className="text-green-600" /> <PrioritasBadge prioritas={task.prioritas} /></div>
+                {/* Metadata Row */}
+                <div className="flex flex-wrap items-center gap-y-3 gap-x-6 text-xs font-medium text-gray-500 mb-6">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Deadline: {task.deadline}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-1.5">
+                         <FiFlag className={task.prioritas === "Prioritas Tinggi" ? "text-red-500" : "text-green-600"} />
+                         <PrioritasBadge prioritas={task.prioritas} />
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                         <FiUser className="text-gray-400" />
+                         <span>Ditugaskan oleh: {task.assigner}</span>
+                    </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <ActionButton onClick={()=>setSelected(task)} color="blue" icon={<FiEye/>} label="Detail" />
-                  <ActionButton color="yellow" icon={<FiEdit/>} label="Edit" />
-                  <ActionButton color="red" icon={<FiTrash2/>} label="Hapus" />
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-50">
+                    
+                    {/* Dynamic Main Action Button */}
+                    {task.status === "Baru" && (
+                        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors">
+                            <FiPlayCircle className="text-sm" /> Mulai Tugas
+                        </button>
+                    )}
+
+                    {task.status === "Sedang Dikerjakan" && (
+                        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors">
+                            <FiCheckCircle className="text-sm" /> Tandai Selesai
+                        </button>
+                    )}
+
+                    {/* Secondary Actions */}
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100 transition-colors">
+                        <FiMessageSquare className="text-sm" /> Tambah Catatan
+                    </button>
+                    
+                    {/* View Detail (Optional/Jika perlu) */}
+                    {task.status === "Selesai" && (
+                         <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200 transition-colors">
+                            <FiEye className="text-sm" /> Lihat Detail
+                        </button>
+                    )}
                 </div>
+
               </div>
-            ))
+            ));
           })()}
         </div>
 
-        {showCreate && (
-          <Modal title="Buat Tugas Baru" onClose={()=>setShowCreate(false)}>
-            <TaskForm onCancel={()=>setShowCreate(false)} onSave={(values)=>{
-              const newTask = {...values, initial: initials(values.assignee), nama: values.assignee};
-              setTasks(prev=>[newTask,...prev]);
-              setShowCreate(false);
-            }} />
-          </Modal>
-        )}
-
-        {selected && (
-          <Modal title={`Detail Tugas: ${selected.judul}`} onClose={()=>setSelected(null)}>
-            <div className="space-y-3 text-sm text-gray-700">
-              <p className="text-xs text-gray-500">Ditugaskan Kepada</p>
-              <p className="font-semibold">{selected.nama}</p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-gray-500">Deadline</p>
-                  <p>{selected.deadline}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Prioritas</p>
-                  <p>{selected.prioritas}</p>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-500">Deskripsi</p>
-                <p className="text-gray-700">{selected.deskripsi}</p>
-              </div>
-
-              <div className="flex justify-end">
-                <button onClick={()=>setSelected(null)} className="px-4 py-2 rounded bg-white border">Tutup</button>
-              </div>
-            </div>
-          </Modal>
+        {/* MODAL DETAIL (Opsional - jika tombol detail diklik) */}
+        {selectedTask && (
+             <Modal title="Detail Tugas" onClose={() => setSelectedTask(null)}>
+                 <p className="text-gray-700">{selectedTask.deskripsi}</p>
+                 {/* Isi detail lainnya... */}
+             </Modal>
         )}
 
       </main>
     </div>
-  )
-}
+  );
+};
 
 export default DaftarTugas;
 
-/* helpers & small components */
-const tabs = ["Semua Tugas", "Pending", "Dalam Progress", "Selesai", "Terlambat"];
+/* --- COMPONENTS --- */
 
-const StatusBadge = ({status})=>{
-  const styles = {
-    "Dalam Progress": "bg-blue-100 text-blue-700",
-    "Pending": "bg-orange-100 text-orange-700",
-    "Selesai": "bg-green-100 text-green-700",
-    "Terlambat": "bg-red-100 text-red-700"
-  };
-  return <span className={`px-3 py-1 rounded-full text-xs font-semibold ${styles[status]||'bg-gray-100 text-gray-700'}`}>{status}</span>
+const StatusBadge = ({ status }) => {
+    const styles = {
+        "Baru": "bg-orange-100 text-orange-600", // Orange untuk baru
+        "Sedang Dikerjakan": "bg-blue-100 text-blue-600", // Biru untuk progress
+        "Selesai": "bg-green-100 text-green-600", // Hijau untuk selesai
+    };
+    return (
+        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${styles[status] || "bg-gray-100"}`}>
+            {status}
+        </span>
+    );
+};
+
+const PrioritasBadge = ({ prioritas }) => {
+    const styles = {
+        "Prioritas Normal": "bg-orange-100 text-orange-700",
+        "Prioritas Tinggi": "bg-red-100 text-red-700",
+    };
+    // Di desain figma, prioritas badge berbentuk kotak kecil berwarna
+    return (
+        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${styles[prioritas]}`}>
+            {prioritas}
+        </span>
+    );
 }
 
-const PrioritasBadge = ({prioritas})=>{
-  const map = {"Prioritas Normal":"bg-green-100 text-green-700","Prioritas Tinggi":"bg-orange-100 text-orange-700","Urgent":"bg-red-100 text-red-700"};
-  return <span className={`px-2 py-1 rounded text-xs font-semibold ${map[prioritas]||'bg-gray-100'}`}>{prioritas}</span>
-}
-
-const ActionButton = ({color, icon, label, onClick})=>{
-  const colors={blue:'bg-blue-100 text-blue-600', yellow:'bg-orange-100 text-orange-600', red:'bg-red-100 text-red-600'};
-  return <button type="button" onClick={onClick} className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-semibold ${colors[color]||''}`}>{icon} {label}</button>
-}
-
-const TaskForm = ({onCancel,onSave})=>{
-  const [judul,setJudul]=useState('');
-  const [deskripsi,setDeskripsi]=useState('');
-  const [assignee,setAssignee]=useState('Ahmad Fauzi');
-  const [deadline,setDeadline]=useState('');
-  const [prioritas,setPrioritas]=useState('Prioritas Normal');
-  const [status,setStatus]=useState('Pending');
-
-  const submit=(e)=>{e.preventDefault(); onSave({judul,deskripsi,assignee,deadline,prioritas,status})}
-
-  return (
-    <form onSubmit={submit} className="space-y-4">
-      <div>
-        <label className="text-sm font-medium">Judul</label>
-        <input required value={judul} onChange={e=>setJudul(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded" />
-      </div>
-      <div>
-        <label className="text-sm font-medium">Deskripsi</label>
-        <textarea value={deskripsi} onChange={e=>setDeskripsi(e.target.value)} rows={4} className="w-full mt-1 px-3 py-2 border rounded" />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <select value={assignee} onChange={e=>setAssignee(e.target.value)} className="px-3 py-2 border rounded">
-          <option>Ahmad Fauzi</option>
-          <option>Siti Rahma</option>
-          <option>Dewi Lestari</option>
-          <option>Eko Prasetyo</option>
-        </select>
-        <input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)} className="px-3 py-2 border rounded" />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <select value={prioritas} onChange={e=>setPrioritas(e.target.value)} className="px-3 py-2 border rounded">
-          <option>Prioritas Normal</option>
-          <option>Prioritas Tinggi</option>
-          <option>Urgent</option>
-        </select>
-        <select value={status} onChange={e=>setStatus(e.target.value)} className="px-3 py-2 border rounded">
-          <option>Pending</option>
-          <option>Dalam Progress</option>
-          <option>Selesai</option>
-          <option>Terlambat</option>
-        </select>
-      </div>
-      <div className="flex justify-end gap-3">
-        <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-100 rounded">Batal</button>
-        <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Simpan</button>
-      </div>
-    </form>
-  )
-}
-
+/* --- DUMMY DATA --- */
 const initialTasks = [
-  { judul: "Inventarisasi Buku Baru", deskripsi: "Katalogisasi buku baru...", status: "Dalam Progress", nama: "Ahmad Fauzi", initial: "AF", deadline: "20 Nov 2025", prioritas: "Prioritas Tinggi" },
-  { judul: "Pembuatan Laporan Bulanan", deskripsi: "Menyusun laporan...", status: "Selesai", nama: "Siti Rahma", initial: "SR", deadline: "15 Nov 2025", prioritas: "Prioritas Normal" },
-  { judul: "Update Database Koleksi", deskripsi: "Perbaikan metadata...", status: "Pending", nama: "Dewi Lestari", initial: "DL", deadline: "25 Nov 2025", prioritas: "Prioritas Normal" },
-]
+  {
+    judul: "Inventarisasi Buku Baru",
+    deskripsi: "Melakukan pencatatan dan katalogisasi buku-buku baru yang baru diterima dari pengadaan bulan November 2025. Total 150 eksemplar buku perlu diinventaris dengan detail lengkap.",
+    status: "Sedang Dikerjakan",
+    deadline: "20 Nov 2025",
+    prioritas: "Prioritas Tinggi",
+    assigner: "Admin Perpustakaan"
+  },
+  {
+    judul: "Update Database Koleksi",
+    deskripsi: "Memperbarui database koleksi perpustakaan dengan menambahkan metadata yang masih kurang dan memperbaiki data yang salah input. Fokus pada koleksi tahun 2020-2023.",
+    status: "Baru",
+    deadline: "25 Nov 2025",
+    prioritas: "Prioritas Normal",
+    assigner: "Admin Perpustakaan"
+  },
+  {
+    judul: "Penyusunan Panduan Layanan Digital",
+    deskripsi: "Membuat panduan penggunaan layanan digital perpustakaan untuk mahasiswa baru, termasuk cara akses e-journal, e-book, dan layanan referensi online.",
+    status: "Sedang Dikerjakan",
+    deadline: "30 Nov 2025",
+    prioritas: "Prioritas Normal",
+    assigner: "Admin Perpustakaan"
+  },
+  {
+    judul: "Pembuatan Laporan Bulanan",
+    deskripsi: "Membuat laporan statistik pengunjung perpustakaan, peminjaman buku, dan layanan referensi untuk bulan Oktober 2025.",
+    status: "Selesai",
+    deadline: "15 Nov 2025",
+    prioritas: "Prioritas Normal",
+    assigner: "Admin Perpustakaan"
+  },
+];

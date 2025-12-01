@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import AsideTendik from "../../components/AsideTendik";
 import Topbar from "../../components/Topbar";
+import { FiClock, FiCheckCircle } from "react-icons/fi";
 
 const RiwayatAktivitas = () => {
   const [reports] = useState([
@@ -37,37 +38,48 @@ const RiwayatAktivitas = () => {
   ]);
 
   return (
-    <div className="flex bg-[#f3fff5] min-h-screen">
+    <div className="flex bg-gradient-to-b from-[#E8F5E9] via-[#E8F5E9] to-[#DCEDC8] min-h-screen">
       <AsideTendik />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1">
         <Topbar title="Riwayat Aktivitas" subtitle="Rekapitulasi semua absensi dan laporan kegiatan Anda" />
 
-        <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-green-800 font-bold text-lg mb-4">Laporan Terkirim</h2>
+        <div className="bg-white rounded-xl shadow p-6 mt-8 mx-8 mb-8">
+  <div className="flex items-center gap-3 mb-6">
+    <FiClock className="text-xl text-green-800" />
+    <h2 className="text-lg font-bold text-green-800">Laporan Terkirim</h2>
+  </div>
 
-          <div className="space-y-4">
-            {reports.map((r) => (
-              <div key={r.id} className="border rounded-lg p-4 bg-green-50">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">{r.date}</p>
-                    <h3 className="font-semibold text-green-800 mt-2">{r.title}</h3>
-                    <p className="text-sm text-gray-700 mt-2">{r.description}</p>
-                    <div className="flex items-center gap-3 mt-3 text-xs text-gray-500">
-                      <span className="inline-block px-2 py-1 rounded-full bg-white text-green-700">{r.category}</span>
-                      <span>{r.time}</span>
-                    </div>
-                  </div>
-
-                  <div className="ml-4 flex-shrink-0">
-                    <span className="inline-block px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm">{r.status}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+  <div className="space-y-4">
+    {reports.map((r) => (
+      <div key={r.id} className="p-6 rounded-2xl bg-[#FAFAFA] border border-gray-50 hover:shadow-md transition-shadow">
+        
+        {/* Header: Tanggal & Status */}
+        <div className="flex justify-between items-start mb-2">
+          <p className="text-sm font-bold text-green-900">{r.date}</p>
+          <span className="inline-block px-4 py-1 rounded-full bg-[#C8E6C9] text-[#1B5E20] text-xs font-bold">
+            {r.status}
+          </span>
         </div>
+
+        {/* Judul Laporan */}
+        <h3 className="font-bold text-[#2E7D32] text-base mb-2 text-left">{r.title}</h3>
+
+        {/* Deskripsi */}
+        <p className="text-sm text-gray-600 leading-relaxed mb-4">
+          {r.description}
+        </p>
+
+        {/* Footer: Waktu Kirim */}
+        <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+          <FiCheckCircle className="text-green-600" />
+          <span>Dikirim {r.time.replace("Dikirim ", "")}</span> {/* Menghindari duplikasi teks jika data sudah ada kata 'Dikirim' */}
+        </div>
+
+      </div>
+    ))}
+  </div>
+</div>
       </main>
     </div>
   );

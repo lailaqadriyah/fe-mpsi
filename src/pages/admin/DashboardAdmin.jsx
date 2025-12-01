@@ -119,7 +119,7 @@ const Dashboard = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead className="bg-[#E8F5E9] text-left rounded-t-lg">
-                                    <tr className="font-bold text-[#1B5E20] text-sm">
+                                    <tr className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] text-left text-green-800">
                                         <Th>NAMA KARYAWAN</Th>
                                         <Th>JABATAN</Th>
                                         <Th>CHECK IN</Th>
@@ -163,7 +163,7 @@ const Dashboard = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead className="bg-[#E8F5E9] text-left rounded-t-lg">
-                                    <tr className="font-bold text-[#1B5E20] text-sm">
+                                    <tr className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] text-left text-green-800">
                                         <th className="px-4 py-3">JUDUL TUGAS</th>
                                         <th className="px-4 py-3">DITUGASKAN KEPADA</th>
                                         <th className="px-4 py-3">DEADLINE</th>

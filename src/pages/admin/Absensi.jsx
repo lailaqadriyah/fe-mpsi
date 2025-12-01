@@ -5,7 +5,7 @@ import { FiEye, FiFilter } from "react-icons/fi";
 
 const Absensi = () => {
   return (
-    <div className="flex bg-gradient-to-b from-[#E8F5E9] via-[#E8F5E9] to-[#DCEDC8] min-h-screen font-sans">
+    <div className="flex bg-gradient-to-b from-[#ddf5df] via-[#E8F5E9] to-[#DCEDC8] min-h-screen font-sans">
 
       {/* Sidebar */}
       <Aside />
