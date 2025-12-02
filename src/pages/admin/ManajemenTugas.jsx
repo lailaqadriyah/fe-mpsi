@@ -12,183 +12,45 @@ import {
     FiCheckCircle
 } from "react-icons/fi";
 import Modal from "../../components/Modal";
-import Swal from 'sweetalert2';
 
 const ManajemenTugas = () => {
-    const [tasks, setTasks] = useState([]);
-    const [users, setUsers] = useState([]); // Data karyawan untuk dropdown
-    const [loading, setLoading] = useState(true);
+    const [tasks, setTasks] = useState(taskList);
     const [showTaskModal, setShowTaskModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState(null);
     const [activeTab, setActiveTab] = useState(0);
 
-    // State untuk Edit Status
-    const [showEditStatusModal, setShowEditStatusModal] = useState(false);
-    const [statusToUpdate, setStatusToUpdate] = useState("");
-    const [taskToUpdate, setTaskToUpdate] = useState(null);
-
     // Helper untuk inisial nama
-    const initials = (name) => name ? name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() : "??";
-    
-    // Helper format tanggal
-    const formatDate = (dateString) => {
-        if(!dateString) return "-";
-        return new Date(dateString).toLocaleDateString("id-ID", {
-            day: "numeric", month: "short", year: "numeric"
-        });
-    };
+    const initials = (name) => name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
 
-    // 1. FETCH DATA TUGAS & KARYAWAN
-    const fetchData = async () => {
-        const token = localStorage.getItem("token");
-        try {
-            // Fetch Tasks
-            const tasksRes = await fetch("http://localhost:4000/api/admin/tasks", {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const tasksData = await tasksRes.json();
-
-            // Fetch Users (untuk dropdown assignee)
-            const usersRes = await fetch("http://localhost:4000/api/admin/users", {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const usersData = await usersRes.json();
-
-            if (tasksRes.ok && usersRes.ok) {
-                setTasks(tasksData || []);
-                // Handle struktur data user dari backend { data: [...] } atau [...]
-                setUsers(usersData.data || usersData || []);
-            } else {
-                console.error("Gagal mengambil data");
-            }
-        } catch (error) {
-            console.error("Error:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    // 2. HANDLE BUAT TUGAS (POST)
-    const handleCreateTask = async (formData) => {
-        const token = localStorage.getItem("token");
-        try {
-            const response = await fetch("http://localhost:4000/api/tasks", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify(formData)
-            });
-
-            if (response.ok) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    text: 'Tugas baru berhasil dibuat.',
-                    confirmButtonColor: '#2E7D32',
-                    timer: 1500
-                });
-                setShowTaskModal(false);
-                fetchData(); // Refresh data
-            } else {
-                const err = await response.json();
-                Swal.fire('Gagal', err.message || 'Gagal membuat tugas', 'error');
-            }
-        } catch (error) {
-            Swal.fire('Error', 'Terjadi kesalahan koneksi', 'error');
-        }
-    };
-
-    // 3. HANDLE UPDATE STATUS (PATCH)
-    const handleUpdateStatus = async () => {
-        const token = localStorage.getItem("token");
-        try {
-            const response = await fetch(`http://localhost:4000/api/admin/tasks/${taskToUpdate.id}/status`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({ status: statusToUpdate })
-            });
-
-            if (response.ok) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Updated!',
-                    text: 'Status tugas berhasil diperbarui.',
-                    confirmButtonColor: '#2E7D32',
-                    timer: 1500
-                });
-                setShowEditStatusModal(false);
-                fetchData();
-            } else {
-                Swal.fire('Gagal', 'Gagal update status', 'error');
-            }
-        } catch (error) {
-            Swal.fire('Error', 'Koneksi error', 'error');
-        }
-    };
-
-    // 4. HANDLE DELETE (Dummy - Backend belum support delete task)
-    const handleDelete = () => {
-        Swal.fire({
-            icon: 'info',
-            title: 'Fitur Belum Tersedia',
-            text: 'Penghapusan tugas belum didukung oleh sistem backend.',
-            confirmButtonColor: '#2E7D32'
-        });
-    };
-
-    // Buka Modal Edit Status
-    const openEditModal = (task) => {
-        setTaskToUpdate(task);
-        setStatusToUpdate(task.status);
-        setShowEditStatusModal(true);
-    };
-
-    // Filter Tabs
-    const tabNames = ["Semua Tugas", "PENDING", "IN_PROGRESS", "DONE", "CANCELLED"];
-    
     return (
         <div className="flex bg-[#F0F4F0] min-h-screen font-sans">
             <Aside />
 
-            <main className="flex-1 bg-gradient-to-b from-[#E8F5E9] via-[#E8F5E9] to-[#DCEDC8] overflow-y-auto transition-all">
-                <Topbar title="Manajemen Tugas" subtitle="Kelola dan monitor tugas karyawan" />
+            {/* Main Content */}
+            <main
+        className={`flex-1 bg-gradient-to-b from-[#E8F5E9] via-[#E8F5E9] to-[#DCEDC8] overflow-y-auto transition-all`}
+      >
 
-                {/* STATS CARDS (Dihitung dari data asli) */}
+                <Topbar
+          title="Manajemen Tugas"
+          subtitle="Kelola dan monitor tugas karyawan"
+        />
+
+                {/* STATS CARDS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-8">
-                    <StatItem 
-                        label="Total Tugas" 
-                        value={tasks.length} 
-                        color="text-green-700" 
-                    />
-                    <StatItem 
-                        label="Selesai" 
-                        value={tasks.filter(t => t.status === 'DONE').length} 
-                        color="text-blue-600" 
-                    />
-                    <StatItem 
-                        label="Dalam Proses" 
-                        value={tasks.filter(t => t.status === 'IN_PROGRESS').length} 
-                        color="text-orange-600" 
-                    />
-                    <StatItem 
-                        label="Pending" 
-                        value={tasks.filter(t => t.status === 'PENDING').length} 
-                        color="text-gray-600" 
-                    />
+                    {stats.map((s, i) => (
+                        <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-32">
+                            <h3 className={`text-4xl font-bold ${s.color}`}>{s.value}</h3>
+                            <p className="text-gray-500 text-sm mt-2 font-medium">{s.label}</p>
+                        </div>
+                    ))}
                 </div>
 
-                {/* ACTION & TABS */}
-                <div className="flex flex-col gap-4 px-8">
-                    <div className="flex justify-end">
+                {/* ACTION BUTTON & TABS SECTION */}
+                <div className="flex flex-col gap-4">
+                    
+                    {/* 1. Tombol Buat Tugas (Aligned Right) */}
+                    <div className="flex justify-end mr-8">
                         <button 
                             onClick={() => setShowTaskModal(true)} 
                             className="cursor-pointer bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-green-700 text-white px-5 py-2.5 rounded-lg shadow-md font-medium text-sm flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
@@ -197,8 +59,9 @@ const ManajemenTugas = () => {
                         </button>
                     </div>
 
-                    <div className="bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 flex flex-wrap sm:flex-nowrap overflow-x-auto">
-                        {tabNames.map((t, i) => (
+                    {/* 2. Tab Navigation Bar (White Container) */}
+                    <div className="bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 flex flex-wrap sm:flex-nowrap overflow-x-auto mr-8 ml-8">
+                        {tabs.map((t, i) => (
                             <button
                                 key={i}
                                 onClick={() => setActiveTab(i)}
@@ -216,11 +79,8 @@ const ManajemenTugas = () => {
 
                 {/* TASK LIST */}
                 <div className="space-y-5 p-8">
-                    {loading ? <p className="text-center text-gray-500">Memuat data tugas...</p> : (() => {
-                        const filterStatus = tabNames[activeTab];
-                        const filtered = activeTab === 0 
-                            ? tasks 
-                            : tasks.filter(t => t.status === filterStatus);
+                    {(() => {
+                        const filtered = activeTab === 0 ? tasks : tasks.filter(t => t.status === tabs[activeTab]);
                         
                         if (filtered.length === 0) {
                             return (
@@ -229,18 +89,21 @@ const ManajemenTugas = () => {
                                 </div>
                             );
                         }
-
                         return filtered.map((task, i) => (
                             <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                                 <div className="flex justify-between items-start mb-2">
-                                    <h2 className="text-lg font-bold text-green-900 leading-tight">{task.title}</h2>
+                                    <h2 className="text-lg font-bold text-green-900 leading-tight">
+                                        {task.judul}
+                                    </h2>
                                     <StatusBadge status={task.status} />
                                 </div>
 
+                                {/* Description */}
                                 <p className="text-gray-500 text-sm mb-6 line-clamp-2 text-left">
-                                    {task.description || "Tidak ada deskripsi"}
+                                    {task.deskripsi}
                                 </p>
 
+                                {/* Meta Data Row */}
                                 <div className="flex flex-wrap items-center gap-y-3 gap-x-6 text-sm mb-6 border-b border-gray-50 pb-4">
                                     <div className="flex items-center gap-2">
                                         <div className="w-8 h-8 bg-green-700 text-white rounded-full flex items-center justify-center font-bold text-xs">
@@ -250,10 +113,17 @@ const ManajemenTugas = () => {
                                     </div>
                                     <div className="flex items-center gap-2 text-gray-500">
                                         <FiCalendar className="text-green-600" />
-                                        <span>Deadline: {formatDate(task.dueDate)}</span>
+                                        <span>Deadline: {task.deadline}</span>
+                                    </div>
+
+                                    {/* Priority */}
+                                    <div className="flex items-center gap-2">
+                                        <FiFlag className={`${task.prioritas === 'Urgent' ? 'text-red-500' : 'text-green-600'}`} />
+                                        <PrioritasBadge prioritas={task.prioritas} />
                                     </div>
                                 </div>
 
+                                {/* Action Buttons */}
                                 <div className="flex gap-3">
                                     <ActionButton onClick={() => setSelectedTask(task)} color="blue" icon={<FiEye />} label="Detail" />
                                     <ActionButton onClick={() => openEditModal(task)} color="yellow" icon={<FiEdit />} label="Ubah Status" />
@@ -267,34 +137,16 @@ const ManajemenTugas = () => {
                 {/* MODAL - CREATE TASK */}
                 {showTaskModal && (
                     <Modal title="Buat Tugas Baru" onClose={() => setShowTaskModal(false)}>
-                        <TaskForm 
-                            users={users} 
-                            onCancel={() => setShowTaskModal(false)} 
-                            onSave={handleCreateTask} 
-                        />
-                    </Modal>
-                )}
-
-                {/* MODAL - UPDATE STATUS */}
-                {showEditStatusModal && (
-                    <Modal title="Update Status Tugas" onClose={() => setShowEditStatusModal(false)}>
-                        <div className="mt-2 space-y-4">
-                            <p className="text-sm text-gray-600">Ubah status untuk tugas: <b>{taskToUpdate?.title}</b></p>
-                            <select 
-                                value={statusToUpdate} 
-                                onChange={(e) => setStatusToUpdate(e.target.value)}
-                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
-                            >
-                                <option value="PENDING">PENDING</option>
-                                <option value="IN_PROGRESS">IN_PROGRESS</option>
-                                <option value="DONE">DONE</option>
-                                <option value="CANCELLED">CANCELLED</option>
-                            </select>
-                            <div className="flex justify-end pt-4 gap-2">
-                                <button onClick={() => setShowEditStatusModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
-                                <button onClick={handleUpdateStatus} className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700">Simpan</button>
-                            </div>
-                        </div>
+                        <TaskForm onCancel={() => setShowTaskModal(false)} onSave={(values) => {
+                            const newTask = {
+                                ...values,
+                                initial: initials(values.assignee),
+                                nama: values.assignee,
+                                deadline: values.deadline || 'Belum ditentukan'
+                            };
+                            setTasks(prev => [newTask, ...prev]);
+                            setShowTaskModal(false);
+                        }} />
                     </Modal>
                 )}
 
@@ -306,25 +158,24 @@ const ManajemenTugas = () => {
                                 <h4 className="font-extrabold text-lg text-green-800 mb-1">{selectedTask.title}</h4>
                                 <StatusBadge status={selectedTask.status} />
                             </div>
-                            
                             <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                                 <div>
                                     <p className="text-xs text-gray-500 uppercase">Ditugaskan Kepada</p>
-                                    <p className="font-semibold text-gray-800">{selectedTask.assignee?.name || "-"}</p>
+                                    <p className="font-semibold text-gray-800">{selectedTask.nama}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500 uppercase">Deadline</p>
-                                    <p className="font-semibold text-gray-800">{formatDate(selectedTask.dueDate)}</p>
+                                    <p className="font-semibold text-gray-800">{selectedTask.deadline}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-500 uppercase">Dibuat Oleh</p>
-                                    <p className="font-semibold text-gray-800">{selectedTask.createdBy?.name || "-"}</p>
+                                    <p className="text-xs text-gray-500 uppercase">Prioritas</p>
+                                    <p className="font-semibold text-gray-800">{selectedTask.prioritas}</p>
                                 </div>
                             </div>
 
                             <div>
                                 <p className="text-xs text-gray-500 uppercase mb-1">Deskripsi</p>
-                                <p className="text-gray-700 bg-white p-3 border rounded-md min-h-[80px]">{selectedTask.description || "-"}</p>
+                                <p className="text-gray-700 bg-white p-3 border rounded-md">{selectedTask.deskripsi}</p>
                             </div>
 
                             <div className="flex justify-end pt-2">
@@ -340,93 +191,230 @@ const ManajemenTugas = () => {
 
 export default ManajemenTugas;
 
-/* --- SUB COMPONENTS --- */
-
-const StatItem = ({ label, value, color }) => (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-32">
-        <h3 className={`text-4xl font-bold ${color}`}>{value}</h3>
-        <p className="text-gray-500 text-sm mt-2 font-medium">{label}</p>
-    </div>
-);
+/* --- COMPONENT HELPERS --- */
 
 const StatusBadge = ({ status }) => {
     const styles = {
-        "IN_PROGRESS": "bg-blue-100 text-blue-700",
-        "PENDING": "bg-orange-100 text-orange-700",
-        "DONE": "bg-green-100 text-green-700",
-        "CANCELLED": "bg-red-100 text-red-700"
+        "Dalam Progress": "bg-gradient-to-r from-[#BBDEFB] to-[#90CAF9] text-[#0D47A1]",
+        "Pending": "bg-gradient-to-r from-[#FFE0B2] to-[#FFCC80] text-[#E65100]",
+        "Selesai": "bg-gradient-to-r from-[#C8E6C9] to-[#A5D6A7] text-[#1B5E20]",
+        "Terlambat": "bg-gradient-to-r from-[#FFCDD2] to-[#EF9A9A] text-[#C62828]"
     };
+
     return (
-        <span className={`px-3 py-1 rounded-full text-xs font-bold ${styles[status] || "bg-gray-100"}`}>
-            {status?.replace("_", " ")}
+        <span className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${styles[status] || "bg-gray-100 text-gray-600"}`}>
+            {status}
+        </span>
+    );
+};
+
+const PrioritasBadge = ({ prioritas }) => {
+    const styles = {
+        "Prioritas Normal": "bg-orange-100 text-orange-700",
+        "Prioritas Tinggi": "bg-red-100 text-red-700",
+        "Urgent": "bg-red-200 text-red-800"
+    };
+
+    return (
+        <span className={`px-3 py-1 rounded-md text-xs font-semibold ${styles[prioritas] || "bg-gray-100"}`}>
+            {prioritas}
         </span>
     );
 };
 
 const ActionButton = ({ color, icon, label, onClick }) => {
     const colors = {
-        blue: "bg-blue-50 text-blue-600 hover:bg-blue-100",
-        yellow: "bg-yellow-50 text-yellow-600 hover:bg-yellow-100",
-        red: "bg-red-50 text-red-600 hover:bg-red-100",
+        // Detail: Gradasi Biru
+        blue: "bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] text-[#1976D2] hover:shadow-md",
+        
+        // Edit: Gradasi Kuning/Oranye
+        yellow: "bg-gradient-to-r from-[#FFF3E0] to-[#FFE0B2] text-[#EF6C00] hover:shadow-md",
+        
+        // Hapus: Gradasi Merah
+        red: "bg-gradient-to-r from-[#FFEBEE] to-[#FFCDD2] text-[#C62828] hover:shadow-md",
     };
+
     return (
-        <button onClick={onClick} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${colors[color]}`}>
-            <span className="text-lg">{icon}</span> {label}
+        <button 
+            type="button" 
+            onClick={onClick} 
+            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-[10px] text-sm font-bold transition-all duration-200 ${colors[color]}`}
+        >
+            <span className="text-lg">{icon}</span>
+            {label}
         </button>
     );
 };
 
-/* --- FORM COMPONENT --- */
-const TaskForm = ({ users, onCancel, onSave }) => {
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [assigneeId, setAssigneeId] = useState("");
-    const [dueDate, setDueDate] = useState("");
+/* --- FORM COMPONENT (UPDATED FOR MODAL UI) --- */
+const TaskForm = ({ onSave }) => {
+    const [judul, setJudul] = useState("");
+    const [deskripsi, setDeskripsi] = useState("");
+    const [assignee, setAssignee] = useState("Pilih Karyawan");
+    const [deadline, setDeadline] = useState("");
+    const [prioritas, setPrioritas] = useState("Tinggi");
+    const [status, setStatus] = useState("Pending");
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!assigneeId) {
-            Swal.fire('Peringatan', 'Silakan pilih karyawan terlebih dahulu', 'warning');
+        // Validasi sederhana
+        if(assignee === "Pilih Karyawan") {
+            alert("Silakan pilih karyawan terlebih dahulu");
             return;
         }
-        onSave({ 
-            title, 
-            description, 
-            assigneeId: parseInt(assigneeId), 
-            dueDate 
-        });
+        onSave({ judul, deskripsi, assignee, deadline, prioritas, status });
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
             <div>
-                <label className="text-xs font-bold text-gray-700 block mb-1.5">Judul Tugas</label>
-                <input required value={title} onChange={e => setTitle(e.target.value)} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="Contoh: Input Data Buku" />
+                <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Judul Tugas</label>
+                <input 
+                    required 
+                    value={judul} 
+                    onChange={e => setJudul(e.target.value)} 
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition placeholder-gray-400" 
+                    placeholder="Masukkan judul tugas" 
+                />
             </div>
             <div>
-                <label className="text-xs font-bold text-gray-700 block mb-1.5">Deskripsi</label>
-                <textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="Detail tugas..." />
+                <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Deskripsi</label>
+                <textarea 
+                    rows={3} 
+                    value={deskripsi} 
+                    onChange={e => setDeskripsi(e.target.value)} 
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition placeholder-gray-400" 
+                    placeholder="Deskripsi detail tugas" 
+                />
             </div>
+
+            {/* Ditugaskan Kepada */}
             <div>
                 <label className="text-xs font-bold text-gray-700 block mb-1.5">Ditugaskan Kepada</label>
                 <div className="relative">
-                    <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 appearance-none bg-white cursor-pointer">
-                        <option value="">-- Pilih Karyawan --</option>
-                        {users.map(u => (
-                            <option key={u.id} value={u.id}>{u.name}</option>
-                        ))}
+                    <select value={assignee} onChange={e => setAssignee(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition appearance-none bg-gray-100 text-gray-700 cursor-pointer">
+                        <option disabled>Pilih Karyawan</option>
+                        <option>Ahmad Fauzi</option>
+                        <option>Siti Rahma</option>
+                        <option>Dewi Lestari</option>
+                        <option>Eko Prasetyo</option>
+                        <option>Budi Santoso</option>
                     </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">▼</div>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
                 </div>
             </div>
             <div>
-                <label className="text-xs font-bold text-gray-700 block mb-1.5">Deadline</label>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500" />
+                <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Deadline</label>
+                <div className="relative w-48">
+                    <input 
+                        type="date" 
+                        value={deadline} 
+                        onChange={e => setDeadline(e.target.value)} 
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition text-gray-600 cursor-pointer" 
+                    />
+                </div>
             </div>
-            <div className="flex justify-end pt-4 gap-2">
-                <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Batal</button>
-                <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 shadow">Simpan Tugas</button>
+
+            {/* Prioritas */}
+            <div>
+                <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Prioritas</label>
+                <div className="relative">
+                    <select value={prioritas} onChange={e => setPrioritas(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition appearance-none bg-gray-100 text-gray-700 cursor-pointer">
+                        <option>Tinggi</option>
+                        <option>Normal</option>
+                        <option>Urgent</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                </div>
+            </div>
+
+            {/* Status */}
+            <div>
+                <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Status</label>
+                <div className="relative">
+                    <select value={status} onChange={e => setStatus(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition appearance-none bg-gray-100 text-gray-700 cursor-pointer">
+                        <option>Pending</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                </div>
+            </div>
+
+            {/* Footer Button (Hanya Simpan) */}
+            <div className="flex justify-end pt-6">
+                <button 
+                    type="submit" 
+                    className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#2E7D32] text-white px-10 py-2.5 rounded-lg font-bold text-sm shadow-md transition-all active:scale-95"
+                >
+                    Simpan Tugas
+                </button>
             </div>
         </form>
     )
 }
+
+/* --- DUMMY DATA --- */
+
+const tabs = ["Semua Tugas", "Pending", "Dalam Progress", "Selesai", "Terlambat"];
+
+const stats = [
+    { 
+        label: "Tugas Pending", 
+        value: 8, 
+        // Gradasi Orange (Sesuai gambar image_29c5fc.jpg: #F57C00 -> #FFB74D)
+        color: "bg-gradient-to-r from-[#F57C00] to-[#FFB74D] bg-clip-text text-transparent" 
+    },
+    { 
+        label: "Dalam Progress", 
+        value: 12, 
+        // Gradasi Biru (Sesuai gambar image_29c61c.jpg: #0288D1 -> #4FC3F7)
+        color: "bg-gradient-to-r from-[#0288D1] to-[#4FC3F7] bg-clip-text text-transparent" 
+    },
+    { 
+        label: "Selesai", 
+        value: 45, 
+        // Gradasi Hijau (Sesuai gambar sebelumnya)
+        color: "bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] bg-clip-text text-transparent" 
+    },
+    { 
+        label: "Terlambat", 
+        value: 3, 
+        // Gradasi Merah (Sesuai gambar sebelumnya)
+        color: "bg-gradient-to-r from-[#C62828] to-[#EF5350] bg-clip-text text-transparent" 
+    },
+];
+
+const taskList = [
+    {
+        judul: "Inventarisasi Buku Baru",
+        deskripsi: "Melakukan pencatatan dan katalogisasi buku-buku baru yang baru diterima dari pengadaan bulan November 2025. Total 150 eksemplar buku perlu diinventaris.",
+        status: "Dalam Progress",
+        nama: "Ahmad Fauzi",
+        initial: "AF",
+        deadline: "30 Nov 2025",
+        prioritas: "Prioritas Normal"
+    },
+    {
+        judul: "Update Database Koleksi",
+        deskripsi: "Memperbarui database koleksi perpustakaan dengan menambahkan metadata yang masih kurang dan memperbaiki data yang salah input.",
+        status: "Pending",
+        nama: "Dewi Lestari",
+        initial: "DL",
+        deadline: "25 Nov 2025",
+        prioritas: "Prioritas Normal"
+    },
+    {
+        judul: "Penyusunan Panduan Layanan Digital",
+        deskripsi: "Membuat panduan penggunaan layanan digital perpustakaan untuk mahasiswa baru, termasuk cara akses e-journal dan e-book.",
+        status: "Dalam Progress",
+        nama: "Eko Prasetyo",
+        initial: "EP",
+        deadline: "30 Nov 2025",
+        prioritas: "Prioritas Normal"
+    },
+];
