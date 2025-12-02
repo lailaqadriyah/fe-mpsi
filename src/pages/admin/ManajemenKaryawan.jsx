@@ -9,9 +9,23 @@ import {
   FiCreditCard,
   FiUserPlus,
   FiSearch,
+  FiList,
 } from "react-icons/fi";
 import Modal from "../../components/Modal";
 import Swal from "sweetalert2";
+
+// Komponen untuk tombol QuickButton
+const QuickButton = ({ label, icon, onClick }) => (
+  <button
+    onClick={onClick}
+    className="bg-white shadow hover:shadow-md transition rounded-2xl py-6 flex flex-col items-center gap-3"
+  >
+    <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center text-green-700 text-xl">
+      {icon}
+    </div>
+    <p className="font-bold text-sm">{label}</p>
+  </button>
+);
 
 const ManajemenKaryawan = () => {
   const [users, setUsers] = useState([]);
@@ -283,13 +297,18 @@ const ManajemenKaryawan = () => {
           subtitle="Kelola data tenaga kependidikan perpustakaan"
         />
 
-        <div className="w-full flex justify-end pr-8">
-          <button
+        {/* Tambahkan QuickButton untuk "Lihat Pengajuan Cuti" */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-16 mb-2 px-4 pt-6">
+          <QuickButton
+            label="Tambah Karyawan"
+            icon={<FiUserPlus className="text-xl" />}
             onClick={openAddModal}
-            className="cursor-pointer bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white px-4 py-2 rounded-lg font-semibold text-sm shadow mt-6 flex items-center gap-2 hover:shadow-lg transition-all"
-          >
-            <FiUserPlus className="text-lg" /> Tambah Karyawan
-          </button>
+          />
+          <QuickButton
+            label="Lihat Pengajuan Cuti"
+            icon={<FiList className="text-xl" />}
+            onClick={() => navigate("")}
+          />
         </div>
 
         {/* --- SEARCH & FILTER --- */}

@@ -41,7 +41,7 @@ const AbsensiDigital = () => {
     const minutes = Math.floor((diff % 3600) / 60);
     return `${hours} jam ${minutes} menit`;
   };
-
+  
   const history = [
     { tanggal: "14 November 2025", in: "08:10", out: "17:05", durasi: "8 jam 55 menit", status: "Hadir" },
     { tanggal: "13 November 2025", in: "08:20", out: "17:00", durasi: "8 jam 40 menit", status: "Terlambat" },
