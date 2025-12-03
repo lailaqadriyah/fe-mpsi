@@ -39,11 +39,15 @@ const ManajemenTugas = () => {
     // --- HELPER FUNCTIONS ---
     const initials = (name) => name ? name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() : "XY";
 
+    // PERBAIKAN: Mapping Status ENUM DB ke Tampilan
     const mapStatusBEtoFE = (status) => {
         switch(status) {
-            case 'BARU': return 'Pending';
-            case 'SEDANG_DIKERJAKAN': return 'Dalam Progress';
+            case 'PENDING': return 'Pending';
+            case 'DALAM_PROGERSS': return 'On Progress'; // Typo DB
             case 'SELESAI': return 'Selesai';
+            // Fallback untuk data lama
+            case 'BARU': return 'Pending';
+            case 'SEDANG_DIKERJAKAN': return 'On Progress';
             default: return status;
         }
     };
@@ -212,10 +216,12 @@ const ManajemenTugas = () => {
 
     const statsCards = [
         { label: "Tugas Pending", value: statsData.pending, color: "bg-gradient-to-r from-[#F57C00] to-[#FFB74D] bg-clip-text text-transparent" },
-        { label: "Dalam Progress", value: statsData.progress, color: "bg-gradient-to-r from-[#0288D1] to-[#4FC3F7] bg-clip-text text-transparent" },
+        { label: "On Progress", value: statsData.progress, color: "bg-gradient-to-r from-[#0288D1] to-[#4FC3F7] bg-clip-text text-transparent" },
         { label: "Selesai", value: statsData.done, color: "bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] bg-clip-text text-transparent" },
         { label: "Terlambat", value: statsData.late, color: "bg-gradient-to-r from-[#C62828] to-[#EF5350] bg-clip-text text-transparent" },
     ];
+
+    const tabs = ["Semua Tugas", "Pending", "On Progress", "Selesai"];
 
     return (
         <div className="flex bg-[#F0F4F0] min-h-screen font-sans">
@@ -408,7 +414,7 @@ export default ManajemenTugas;
 
 /* --- COMPONENT HELPERS --- */
 const StatusBadge = ({ status }) => {
-    const styles = { "Dalam Progress": "bg-gradient-to-r from-[#BBDEFB] to-[#90CAF9] text-[#0D47A1]", "Pending": "bg-gradient-to-r from-[#FFE0B2] to-[#FFCC80] text-[#E65100]", "Selesai": "bg-gradient-to-r from-[#C8E6C9] to-[#A5D6A7] text-[#1B5E20]", "Terlambat": "bg-gradient-to-r from-[#FFCDD2] to-[#EF9A9A] text-[#C62828]" };
+    const styles = { "On Progress": "bg-gradient-to-r from-[#BBDEFB] to-[#90CAF9] text-[#0D47A1]", "Pending": "bg-gradient-to-r from-[#FFE0B2] to-[#FFCC80] text-[#E65100]", "Selesai": "bg-gradient-to-r from-[#C8E6C9] to-[#A5D6A7] text-[#1B5E20]", "Terlambat": "bg-gradient-to-r from-[#FFCDD2] to-[#EF9A9A] text-[#C62828]" };
     return <span className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${styles[status] || "bg-gray-100 text-gray-600"}`}>{status}</span>;
 };
 
@@ -520,5 +526,3 @@ const TaskForm = ({ onSave, userList, initialData }) => {
         </form>
     )
 }
-
-const tabs = ["Semua Tugas", "Pending", "Dalam Progress", "Selesai"];

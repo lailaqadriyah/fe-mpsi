@@ -7,7 +7,9 @@ import {
   FiCheckCircle,
   FiMessageSquare,
   FiPlayCircle,
-  FiEye
+  FiEye,
+  FiCalendar,     // Tambahan icon
+  FiAlertCircle   // Tambahan icon warning
 } from "react-icons/fi";
 import Modal from "../../components/Modal";
 import Swal from "sweetalert2";
@@ -17,27 +19,44 @@ const DaftarTugas = () => {
   const [activeTab, setActiveTab] = useState("Semua Tugas");
   const [selectedTask, setSelectedTask] = useState(null);
   
-  // State untuk statistik yang dihitung dari data tugas
+  // State untuk statistik
   const [stats, setStats] = useState([
-    { label: "Tugas Baru", value: 0, color: "text-orange-500" },
-    { label: "Sedang Dikerjakan", value: 0, color: "text-blue-500" },
+    { label: "Pending", value: 0, color: "text-orange-500" },
+    { label: "On Progress", value: 0, color: "text-blue-500" },
     { label: "Selesai Bulan Ini", value: 0, color: "text-green-600" },
   ]);
 
-  const tabs = ["Semua Tugas", "Baru", "Sedang Dikerjakan", "Selesai"];
+  const tabs = ["Semua Tugas", "Pending", "On Progress", "Selesai"];
 
-  // --- HELPER MAPPING ---
-  // Mapping status dari Backend (ENUM) ke Tampilan Frontend
+  // --- LOGIKA CEK TERLAMBAT (Sama seperti di Admin) ---
+  const checkIsOverdue = (dateString, status) => {
+    // Jika tanggal kosong atau status sudah selesai, tidak dianggap terlambat
+    if (!dateString || status === 'Selesai') return false;
+    
+    const deadline = new Date(dateString);
+    const today = new Date();
+    // Reset jam agar perbandingan hanya berdasarkan tanggal
+    today.setHours(0, 0, 0, 0);
+    deadline.setHours(0, 0, 0, 0);
+
+    return deadline < today; // True jika deadline lebih kecil dari hari ini
+  };
+
+  // --- MAPPING STATUS ---
   const mapStatusBEtoFE = (status) => {
     switch(status) {
-      case 'BARU': return 'Baru';
-      case 'SEDANG_DIKERJAKAN': return 'Sedang Dikerjakan';
+      case 'PENDING': return 'Pending'; 
+      case 'DALAM_PROGERSS': return 'On Progress'; // Typo di DB
       case 'SELESAI': return 'Selesai';
+      
+      // Fallback
+      case 'BARU': return 'Pending';
+      case 'SEDANG_DIKERJAKAN': return 'On Progress';
       default: return status;
     }
   };
 
-  // Mapping Prioritas dari Backend ke Tampilan Frontend
+  // Mapping Prioritas
   const mapPrioritasBEtoFE = (prio) => {
     switch(prio) {
       case 'TINGGI': return 'Prioritas Tinggi';
@@ -52,7 +71,6 @@ const DaftarTugas = () => {
     if (!token) return;
 
     try {
-      // Menggunakan endpoint /api/tasks yang sudah memfilter berdasarkan user login (assignee atau creator)
       const response = await fetch("http://localhost:4000/api/tasks", {
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -60,15 +78,17 @@ const DaftarTugas = () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Format data dari Backend ke Frontend
+        // Format data
         const formattedTasks = data.map(t => ({
           id: t.id,
           judul: t.title,
           deskripsi: t.description || "-",
           status: mapStatusBEtoFE(t.status),
+          // Tambahkan rawDate untuk cek overdue
+          rawDate: t.dueDate, 
           deadline: t.dueDate ? new Date(t.dueDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) : "-",
           prioritas: mapPrioritasBEtoFE(t.prioritas),
-          assigner: t.createdBy ? t.createdBy.name : "Admin" // Nama pembuat tugas
+          assigner: t.createdBy ? t.createdBy.name : "Admin"
         }));
 
         setTasks(formattedTasks);
@@ -79,16 +99,16 @@ const DaftarTugas = () => {
     }
   };
 
-  // Hitung statistik berdasarkan data yang diterima
+  // Hitung statistik
   const calculateStats = (taskList) => {
-    const baru = taskList.filter(t => t.status === "Baru").length;
-    const progress = taskList.filter(t => t.status === "Sedang Dikerjakan").length;
+    const baru = taskList.filter(t => t.status === "Pending").length;
+    const progress = taskList.filter(t => t.status === "On Progress").length;
     const selesai = taskList.filter(t => t.status === "Selesai").length;
 
     setStats([
-      { label: "Tugas Baru", value: baru, color: "text-orange-500" },
-      { label: "Sedang Dikerjakan", value: progress, color: "text-blue-500" },
-      { label: "Selesai Total", value: selesai, color: "text-green-600" },
+      { label: "Pending", value: baru, color: "text-orange-500" },
+      { label: "On Progress", value: progress, color: "text-blue-500" },
+      { label: "Selesai", value: selesai, color: "text-green-600" },
     ]);
   };
 
@@ -106,14 +126,15 @@ const DaftarTugas = () => {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ status: newStatusBE })
+        body: JSON.stringify({ status: newStatusBE }) 
       });
 
       if (response.ok) {
         Swal.fire("Berhasil", "Status tugas diperbarui", "success");
-        fetchTasks(); // Refresh data
+        fetchTasks(); 
       } else {
-        Swal.fire("Gagal", "Gagal memperbarui status", "error");
+        const err = await response.json();
+        Swal.fire("Gagal", err.message || "Gagal memperbarui status", "error");
       }
     } catch (error) {
       Swal.fire("Error", "Terjadi kesalahan koneksi", "error");
@@ -172,83 +193,109 @@ const DaftarTugas = () => {
               );
             }
 
-            return filtered.map((task, i) => (
-              <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative">
-                
-                {/* Header: Title & Status Badge */}
-                <div className="flex justify-between items-start mb-2 pr-28"> 
-                  <h3 className="text-lg font-bold text-gray-800 leading-tight">{task.judul}</h3>
+            return filtered.map((task, i) => {
+              // --- CEK APAKAH TERLAMBAT ---
+              const isOverdue = checkIsOverdue(task.rawDate, task.status);
+
+              return (
+                <div key={i} 
+                  className={`
+                    bg-white p-6 rounded-2xl shadow-sm border transition-shadow hover:shadow-md relative
+                    ${isOverdue 
+                        ? 'border-l-4 border-l-red-500 border-t-gray-100 border-r-gray-100 border-b-gray-100' 
+                        : 'border-gray-100'
+                    }
+                  `}
+                >
+                  
+                  {/* Header: Title & Status Badge */}
+                  <div className="flex justify-between items-start mb-2 pr-28"> 
+                    <h3 className={`text-lg font-bold leading-tight ${isOverdue ? 'text-gray-800' : 'text-gray-800'}`}>
+                        {task.judul}
+                    </h3>
+                  </div>
+                  
+                  {/* Status Badge (Absolute Top Right) */}
+                  <div className="absolute top-6 right-6">
+                      <StatusBadge status={task.status} />
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-gray-500 text-sm mb-5 leading-relaxed max-w-4xl">
+                    {task.deskripsi}
+                  </p>
+
+                  {/* Metadata Row */}
+                  <div className="flex flex-wrap items-center gap-y-3 gap-x-6 text-xs font-medium text-gray-500 mb-6">
+                      
+                      {/* --- DEADLINE SECTION (UPDATED) --- */}
+                      <div className={`
+                          flex items-center gap-1.5 
+                          ${isOverdue ? "text-red-600 font-bold bg-red-50 px-2 py-1 rounded-md" : ""}
+                      `}>
+                          {isOverdue ? (
+                              <FiAlertCircle className="text-red-600 text-sm" />
+                          ) : (
+                              <FiCalendar className="text-gray-400 text-sm" />
+                          )}
+                          <span>
+                              {isOverdue ? `Terlambat: ${task.deadline}` : `Deadline: ${task.deadline}`}
+                          </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-1.5">
+                           <FiFlag className={task.prioritas === "Prioritas Tinggi" ? "text-red-500" : "text-green-600"} />
+                           <PrioritasBadge prioritas={task.prioritas} />
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                           <FiUser className="text-gray-400" />
+                           <span>Ditugaskan oleh: {task.assigner}</span>
+                      </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-50">
+                      
+                      {/* BUTTON: Mulai Tugas -> Kirim 'DALAM_PROGERSS' (Typo DB) */}
+                      {task.status === "Pending" && (
+                          <button 
+                              onClick={() => handleUpdateStatus(task.id, 'DALAM_PROGERSS')}
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors cursor-pointer"
+                          >
+                              <FiPlayCircle className="text-sm" /> Mulai Tugas
+                          </button>
+                      )}
+
+                      {/* BUTTON: Tandai Selesai -> Kirim 'SELESAI' */}
+                      {task.status === "On Progress" && (
+                          <button 
+                              onClick={() => handleUpdateStatus(task.id, 'SELESAI')}
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors cursor-pointer"
+                          >
+                              <FiCheckCircle className="text-sm" /> Tandai Selesai
+                          </button>
+                      )}
+
+                      {/* Secondary Actions */}
+                      {task.status !== "Selesai" && (
+                          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100 transition-colors cursor-pointer">
+                              <FiMessageSquare className="text-sm" /> Tambah Catatan
+                          </button>
+                      )}
+                      
+                      {/* View Detail */}
+                      <button 
+                          onClick={() => setSelectedTask(task)}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200 transition-colors cursor-pointer"
+                      >
+                          <FiEye className="text-sm" /> Lihat Detail
+                      </button>
+                  </div>
+
                 </div>
-                
-                {/* Status Badge (Absolute Top Right) */}
-                <div className="absolute top-6 right-6">
-                    <StatusBadge status={task.status} />
-                </div>
-
-                {/* Description */}
-                <p className="text-gray-500 text-sm mb-5 leading-relaxed max-w-4xl">
-                  {task.deskripsi}
-                </p>
-
-                {/* Metadata Row */}
-                <div className="flex flex-wrap items-center gap-y-3 gap-x-6 text-xs font-medium text-gray-500 mb-6">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span>Deadline: {task.deadline}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-1.5">
-                         <FiFlag className={task.prioritas === "Prioritas Tinggi" ? "text-red-500" : "text-green-600"} />
-                         <PrioritasBadge prioritas={task.prioritas} />
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                         <FiUser className="text-gray-400" />
-                         <span>Ditugaskan oleh: {task.assigner}</span>
-                    </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-50">
-                    
-                    {/* BUTTON: Mulai Tugas -> Ubah status jadi SEDANG_DIKERJAKAN */}
-                    {task.status === "Baru" && (
-                        <button 
-                            onClick={() => handleUpdateStatus(task.id, 'SEDANG_DIKERJAKAN')}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors cursor-pointer"
-                        >
-                            <FiPlayCircle className="text-sm" /> Mulai Tugas
-                        </button>
-                    )}
-
-                    {/* BUTTON: Tandai Selesai -> Ubah status jadi SELESAI */}
-                    {task.status === "Sedang Dikerjakan" && (
-                        <button 
-                            onClick={() => handleUpdateStatus(task.id, 'SELESAI')}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors cursor-pointer"
-                        >
-                            <FiCheckCircle className="text-sm" /> Tandai Selesai
-                        </button>
-                    )}
-
-                    {/* Secondary Actions */}
-                    {task.status !== "Selesai" && (
-                        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100 transition-colors cursor-pointer">
-                            <FiMessageSquare className="text-sm" /> Tambah Catatan
-                        </button>
-                    )}
-                    
-                    {/* View Detail */}
-                    <button 
-                        onClick={() => setSelectedTask(task)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200 transition-colors cursor-pointer"
-                    >
-                        <FiEye className="text-sm" /> Lihat Detail
-                    </button>
-                </div>
-
-              </div>
-            ));
+              );
+            });
           })()}
         </div>
 
@@ -261,6 +308,12 @@ const DaftarTugas = () => {
                         <div className="mt-1 flex gap-2">
                             <StatusBadge status={selectedTask.status} />
                             <PrioritasBadge prioritas={selectedTask.prioritas} />
+                            {/* Tampilkan juga badge terlambat di dalam modal */}
+                            {checkIsOverdue(selectedTask.rawDate, selectedTask.status) && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-600 border border-red-200">
+                                    TERLAMBAT
+                                </span>
+                            )}
                         </div>
                     </div>
                     <div className="p-4 bg-gray-50 rounded-lg">
@@ -270,7 +323,9 @@ const DaftarTugas = () => {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <p className="text-xs text-gray-500 uppercase font-bold">Deadline</p>
-                            <p className="text-sm font-medium">{selectedTask.deadline}</p>
+                            <p className={`text-sm font-medium ${checkIsOverdue(selectedTask.rawDate, selectedTask.status) ? "text-red-600 font-bold" : ""}`}>
+                                {selectedTask.deadline}
+                            </p>
                         </div>
                         <div>
                             <p className="text-xs text-gray-500 uppercase font-bold">Pemberi Tugas</p>
@@ -295,8 +350,8 @@ export default DaftarTugas;
 
 const StatusBadge = ({ status }) => {
     const styles = {
-        "Baru": "bg-orange-100 text-orange-600",
-        "Sedang Dikerjakan": "bg-blue-100 text-blue-600",
+        "Pending": "bg-orange-100 text-orange-600",
+        "On Progress": "bg-blue-100 text-blue-600",
         "Selesai": "bg-green-100 text-green-600",
     };
     return (
