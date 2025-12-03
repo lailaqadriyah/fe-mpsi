@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom"; // IMPORT BARU
 import Aside from "../../components/Aside";
 import Topbar from "../../components/Topbar";
 import {
@@ -8,7 +9,8 @@ import {
     FiTrash2,
     FiFlag,
     FiUser,
-    FiPlus
+    FiPlus,
+    FiAlertCircle
 } from "react-icons/fi";
 import Modal from "../../components/Modal";
 import Swal from "sweetalert2";
@@ -18,16 +20,21 @@ const ManajemenTugas = () => {
     const [tasks, setTasks] = useState([]);
     const [users, setUsers] = useState([]);
     const [showTaskModal, setShowTaskModal] = useState(false);
+    
+    // State untuk Detail & Edit
     const [selectedTask, setSelectedTask] = useState(null);
+    const [editingTask, setEditingTask] = useState(null); 
     const [activeTab, setActiveTab] = useState(0);
     
-    // State Statistik
     const [statsData, setStatsData] = useState({
         pending: 0,
         progress: 0,
         done: 0,
         late: 0
     });
+
+    const location = useLocation(); // Hook location
+    const navigate = useNavigate(); // Hook navigate
 
     // --- HELPER FUNCTIONS ---
     const initials = (name) => name ? name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() : "XY";
@@ -49,19 +56,31 @@ const ManajemenTugas = () => {
         }
     };
 
+    // LOGIKA BARU: Cek Apakah Terlambat
+    const checkIsOverdue = (dateString, status) => {
+        if (!dateString || status === 'Selesai') return false;
+        
+        const deadline = new Date(dateString);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        deadline.setHours(0, 0, 0, 0);
+
+        return deadline < today;
+    };
+
     // --- API CALLS ---
     const token = localStorage.getItem("token");
 
     const fetchTasksAndStats = async () => {
         if (!token) return;
         try {
-            // Fetch Stats
+            // Stats
             const resStats = await fetch("http://localhost:4000/api/admin/task-stats", {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (resStats.ok) setStatsData(await resStats.json());
 
-            // Fetch Tasks
+            // Tasks
             const resTasks = await fetch("http://localhost:4000/api/admin/tasks", {
                 headers: { "Authorization": `Bearer ${token}` }
             });
@@ -73,6 +92,9 @@ const ManajemenTugas = () => {
                     judul: t.title,
                     deskripsi: t.description || "-",
                     status: mapStatusBEtoFE(t.status),
+                    assigneeId: t.assigneeId,
+                    rawDate: t.dueDate, 
+                    rawPrioritas: t.prioritas,
                     nama: t.assignee ? t.assignee.name : "Belum Ditunjuk",
                     initial: initials(t.assignee ? t.assignee.name : ""),
                     deadline: t.dueDate ? new Date(t.dueDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) : "-",
@@ -105,10 +127,27 @@ const ManajemenTugas = () => {
         fetchUsers();
     }, []);
 
-    const handleCreateTask = async (payload) => {
+    // --- EFFECT: AUTO OPEN MODAL FROM DASHBOARD ---
+    useEffect(() => {
+        if (location.state?.openAddModal) {
+            handleAddNewClick();
+            // Bersihkan state agar tidak terbuka terus saat refresh
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location]);
+
+    // --- HANDLERS ---
+    const handleSaveTask = async (payload) => {
+        const isEdit = !!editingTask;
+        const url = isEdit 
+            ? `http://localhost:4000/api/tasks/${editingTask.id}` 
+            : "http://localhost:4000/api/tasks";
+        
+        const method = isEdit ? "PUT" : "POST";
+
         try {
-            const response = await fetch("http://localhost:4000/api/tasks", {
-                method: "POST",
+            const response = await fetch(url, {
+                method: method,
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
@@ -117,16 +156,58 @@ const ManajemenTugas = () => {
             });
 
             if (response.ok) {
-                Swal.fire("Berhasil", "Tugas baru berhasil dibuat", "success");
+                Swal.fire("Berhasil", isEdit ? "Tugas diperbarui" : "Tugas baru dibuat", "success");
                 setShowTaskModal(false);
+                setEditingTask(null);
                 fetchTasksAndStats();
             } else {
                 const err = await response.json();
-                Swal.fire("Gagal", err.message || "Gagal membuat tugas", "error");
+                Swal.fire("Gagal", err.message || "Gagal menyimpan tugas", "error");
             }
         } catch (error) {
             Swal.fire("Error", "Terjadi kesalahan koneksi", "error");
         }
+    };
+
+    const handleDelete = async (id) => {
+        const result = await Swal.fire({
+            title: 'Hapus Tugas?',
+            text: "Data yang dihapus tidak dapat dikembalikan!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`http://localhost:4000/api/tasks/${id}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    Swal.fire('Terhapus!', 'Tugas berhasil dihapus.', 'success');
+                    fetchTasksAndStats();
+                } else {
+                    Swal.fire('Gagal', 'Gagal menghapus tugas', 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Terjadi kesalahan koneksi', 'error');
+            }
+        }
+    };
+
+    const handleEditClick = (task) => {
+        setEditingTask(task);
+        setShowTaskModal(true);
+    };
+
+    const handleAddNewClick = () => {
+        setEditingTask(null);
+        setShowTaskModal(true);
     };
 
     const statsCards = [
@@ -156,7 +237,7 @@ const ManajemenTugas = () => {
                 <div className="flex flex-col gap-4">
                     <div className="flex justify-end mr-8">
                         <button 
-                            onClick={() => setShowTaskModal(true)} 
+                            onClick={handleAddNewClick} 
                             className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-green-700 text-white px-5 py-2.5 rounded-lg shadow-md font-medium text-sm flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
                         >
                             <FiPlus className="text-lg" /> Buat Tugas Baru
@@ -180,10 +261,11 @@ const ManajemenTugas = () => {
                     </div>
                 </div>
 
-                {/* TASK LIST */}
+                {/* TASK LIST CARDS */}
                 <div className="space-y-5 p-8">
                     {(() => {
                         const filtered = activeTab === 0 ? tasks : tasks.filter(t => t.status === tabs[activeTab]);
+                        
                         if (filtered.length === 0) {
                             return (
                                 <div className="bg-white p-10 rounded-xl shadow-sm border border-gray-100 text-center text-gray-500">
@@ -191,46 +273,84 @@ const ManajemenTugas = () => {
                                 </div>
                             );
                         }
-                        return filtered.map((task, i) => (
-                            <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h2 className="text-lg font-bold text-green-900 leading-tight">{task.judul}</h2>
-                                    <StatusBadge status={task.status} />
-                                </div>
-                                <p className="text-gray-500 text-sm mb-6 line-clamp-2 text-left">{task.deskripsi}</p>
-                                <div className="flex flex-wrap items-center gap-y-3 gap-x-6 text-sm mb-6 border-b border-gray-50 pb-4">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 bg-green-700 text-white rounded-full flex items-center justify-center font-bold text-xs">
-                                            {task.initial}
+
+                        return filtered.map((task, i) => {
+                            // 🔥 Hitung status terlambat untuk setiap kartu
+                            const isOverdue = checkIsOverdue(task.rawDate, task.status);
+
+                            return (
+                                <div key={i} 
+                                    className={`
+                                        bg-white p-6 rounded-2xl shadow-sm border transition-shadow hover:shadow-md
+                                        ${isOverdue 
+                                            ? 'border-l-4 border-l-red-500 border-t-gray-100 border-r-gray-100 border-b-gray-100' // Jika telat: Border kiri merah
+                                            : 'border-gray-100' // Normal
+                                        }
+                                    `}
+                                >
+                                    {/* Header: Title & Status */}
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h2 className={`text-lg font-bold leading-tight ${isOverdue ? 'text-gray-800' : 'text-green-900'}`}>
+                                            {task.judul}
+                                        </h2>
+                                        <StatusBadge status={task.status} />
+                                    </div>
+
+                                    {/* Description */}
+                                    <p className="text-gray-500 text-sm mb-6 line-clamp-2 text-left">
+                                        {task.deskripsi}
+                                    </p>
+
+                                    {/* Meta Data Row */}
+                                    <div className="flex flex-wrap items-center gap-y-3 gap-x-6 text-sm mb-6 border-b border-gray-50 pb-4">
+                                        
+                                        {/* User */}
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 bg-green-700 text-white rounded-full flex items-center justify-center font-bold text-xs">
+                                                {task.initial}
+                                            </div>
+                                            <span className="text-gray-600 font-medium">{task.nama}</span>
                                         </div>
-                                        <span className="text-gray-600 font-medium">{task.nama}</span>
+
+                                        {/* 🔥 Tampilan Deadline: Berubah Merah jika Terlambat */}
+                                        <div className={`
+                                            flex items-center gap-2 
+                                            ${isOverdue ? "text-red-600 font-bold bg-red-50 px-2 py-1 rounded-md" : "text-gray-500"}
+                                        `}>
+                                            {isOverdue ? <FiAlertCircle /> : <FiCalendar className="text-green-600" />}
+                                            <span>
+                                                {isOverdue ? `Terlambat: ${task.deadline}` : `Deadline: ${task.deadline}`}
+                                            </span>
+                                        </div>
+
+                                        {/* Priority */}
+                                        <div className="flex items-center gap-2">
+                                            <FiFlag className={`${task.prioritas.includes('Tinggi') ? 'text-red-500' : 'text-green-600'}`} />
+                                            <PrioritasBadge prioritas={task.prioritas} />
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2 text-gray-500">
-                                        <FiCalendar className="text-green-600" />
-                                        <span>Deadline: {task.deadline}</span>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-3">
+                                        <ActionButton onClick={() => setSelectedTask(task)} color="blue" icon={<FiEye />} label="Detail" />
+                                        <ActionButton onClick={() => handleEditClick(task)} color="yellow" icon={<FiEdit />} label="Edit" />
+                                        <ActionButton onClick={() => handleDelete(task.id)} color="red" icon={<FiTrash2 />} label="Hapus" />
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <FiFlag className={`${task.prioritas.includes('Tinggi') ? 'text-red-500' : 'text-green-600'}`} />
-                                        <PrioritasBadge prioritas={task.prioritas} />
-                                    </div>
+
                                 </div>
-                                <div className="flex gap-3">
-                                    <ActionButton onClick={() => setSelectedTask(task)} color="blue" icon={<FiEye />} label="Detail" />
-                                    <ActionButton color="yellow" icon={<FiEdit />} label="Edit" />
-                                    <ActionButton color="red" icon={<FiTrash2 />} label="Hapus" />
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     })()}
                 </div>
 
-                {/* MODAL - CREATE TASK */}
+                {/* MODAL - CREATE / EDIT TASK */}
                 {showTaskModal && (
-                    <Modal title="Buat Tugas Baru" onClose={() => setShowTaskModal(false)}>
+                    <Modal title={editingTask ? "Edit Tugas" : "Buat Tugas Baru"} onClose={() => setShowTaskModal(false)}>
                         <TaskForm 
                             userList={users}
+                            initialData={editingTask}
                             onCancel={() => setShowTaskModal(false)} 
-                            onSave={handleCreateTask}
+                            onSave={handleSaveTask}
                         />
                     </Modal>
                 )}
@@ -238,19 +358,45 @@ const ManajemenTugas = () => {
                 {/* MODAL - DETAIL TASK */}
                 {selectedTask && (
                     <Modal title="Detail Tugas" onClose={() => setSelectedTask(null)}>
-                        <div className="space-y-4 text-sm">
-                            <div>
-                                <h4 className="font-extrabold text-lg text-green-800 mb-1">{selectedTask.judul}</h4>
-                                <StatusBadge status={selectedTask.status} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-                                <div><p className="text-xs text-gray-500 uppercase">Ditugaskan Kepada</p><p className="font-semibold text-gray-800">{selectedTask.nama}</p></div>
-                                <div><p className="text-xs text-gray-500 uppercase">Deadline</p><p className="font-semibold text-gray-800">{selectedTask.deadline}</p></div>
-                                <div><p className="text-xs text-gray-500 uppercase">Prioritas</p><p className="font-semibold text-gray-800">{selectedTask.prioritas}</p></div>
-                            </div>
-                            <div><p className="text-xs text-gray-500 uppercase mb-1">Deskripsi</p><p className="text-gray-700 bg-white p-3 border rounded-md">{selectedTask.deskripsi}</p></div>
-                            <div className="flex justify-end pt-2"><button onClick={() => setSelectedTask(null)} className="px-5 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium text-gray-700">Tutup</button></div>
-                        </div>
+                        {/* Logic cek terlambat juga bisa dipakai di Detail */}
+                        {(() => {
+                             const isOverdueDetail = checkIsOverdue(selectedTask.rawDate, selectedTask.status);
+                             return (
+                                <div className="space-y-4 text-sm">
+                                    <div>
+                                        <h4 className="font-extrabold text-lg text-green-800 mb-1">{selectedTask.judul}</h4>
+                                        <div className="flex gap-2">
+                                            <StatusBadge status={selectedTask.status} />
+                                            {isOverdueDetail && (
+                                                <span className="px-3 py-1 bg-red-100 text-red-600 rounded-full text-xs font-bold border border-red-200">
+                                                    TERLAMBAT
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                                        <div><p className="text-xs text-gray-500 uppercase">Ditugaskan Kepada</p><p className="font-semibold text-gray-800">{selectedTask.nama}</p></div>
+                                        <div>
+                                            <p className="text-xs text-gray-500 uppercase">Deadline</p>
+                                            <p className={`font-semibold ${isOverdueDetail ? 'text-red-600' : 'text-gray-800'}`}>
+                                                {selectedTask.deadline}
+                                            </p>
+                                        </div>
+                                        <div><p className="text-xs text-gray-500 uppercase">Prioritas</p><p className="font-semibold text-gray-800">{selectedTask.prioritas}</p></div>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-xs text-gray-500 uppercase mb-1">Deskripsi</p>
+                                        <p className="text-gray-700 bg-white p-3 border rounded-md">{selectedTask.deskripsi}</p>
+                                    </div>
+
+                                    <div className="flex justify-end pt-2">
+                                        <button onClick={() => setSelectedTask(null)} className="px-5 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium text-gray-700">Tutup</button>
+                                    </div>
+                                </div>
+                             );
+                        })()}
                     </Modal>
                 )}
             </main>
@@ -276,13 +422,30 @@ const ActionButton = ({ color, icon, label, onClick }) => {
     return <button type="button" onClick={onClick} className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-[10px] text-sm font-bold transition-all duration-200 ${colors[color]}`}><span className="text-lg">{icon}</span>{label}</button>;
 };
 
-/* --- FORM COMPONENT (VISUAL ASLI DIKEMBALIKAN + DATA BACKEND) --- */
-const TaskForm = ({ onSave, userList }) => {
+/* --- FORM COMPONENT --- */
+const TaskForm = ({ onSave, userList, initialData }) => {
     const [judul, setJudul] = useState("");
     const [deskripsi, setDeskripsi] = useState("");
     const [assigneeId, setAssigneeId] = useState("");
     const [deadline, setDeadline] = useState("");
     const [prioritas, setPrioritas] = useState("TINGGI");
+
+    useEffect(() => {
+        if (initialData) {
+            setJudul(initialData.judul);
+            setDeskripsi(initialData.deskripsi !== "-" ? initialData.deskripsi : "");
+            setAssigneeId(initialData.assigneeId || "");
+            setPrioritas(initialData.rawPrioritas || "TINGGI");
+            
+            if (initialData.rawDate) {
+                const dateObj = new Date(initialData.rawDate);
+                const yyyy = dateObj.getFullYear();
+                const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const dd = String(dateObj.getDate()).padStart(2, '0');
+                setDeadline(`${yyyy}-${mm}-${dd}`);
+            }
+        }
+    }, [initialData]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -301,20 +464,14 @@ const TaskForm = ({ onSave, userList }) => {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-5 mt-2">
-            
-            {/* Judul Tugas */}
             <div>
                 <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Judul Tugas</label>
                 <input required value={judul} onChange={e => setJudul(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition placeholder-gray-400" placeholder="Masukkan judul tugas" />
             </div>
-
-            {/* Deskripsi */}
             <div>
                 <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Deskripsi</label>
                 <textarea rows={3} value={deskripsi} onChange={e => setDeskripsi(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition placeholder-gray-400" placeholder="Deskripsi detail tugas" />
             </div>
-
-            {/* Ditugaskan Kepada (Dropdown dengan Style Asli + Data Backend) */}
             <div>
                 <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Ditugaskan Kepada</label>
                 <div className="relative">
@@ -328,22 +485,17 @@ const TaskForm = ({ onSave, userList }) => {
                             <option key={u.id} value={u.id}>{u.name} ({u.position || u.role?.name})</option>
                         ))}
                     </select>
-                    {/* SVG Icon dikembalikan seperti semula untuk mencegah double arrow */}
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                     </div>
                 </div>
             </div>
-
-            {/* Deadline */}
             <div>
                 <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Deadline</label>
                 <div className="relative w-full">
                     <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition text-gray-600 cursor-pointer" />
                 </div>
             </div>
-
-            {/* Prioritas (Dropdown dengan Style Asli) */}
             <div>
                 <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Prioritas</label>
                 <div className="relative">
@@ -360,10 +512,10 @@ const TaskForm = ({ onSave, userList }) => {
                     </div>
                 </div>
             </div>
-
-            {/* Footer Button */}
             <div className="flex justify-end pt-6">
-                <button type="submit" className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#2E7D32] text-white px-10 py-2.5 rounded-lg font-bold text-sm shadow-md transition-all active:scale-95">Simpan Tugas</button>
+                <button type="submit" className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#2E7D32] text-white px-10 py-2.5 rounded-lg font-bold text-sm shadow-md transition-all active:scale-95">
+                    {initialData ? "Simpan Perubahan" : "Simpan Tugas"}
+                </button>
             </div>
         </form>
     )

@@ -16,10 +16,9 @@ const Dashboard = () => {
     const navigate = useNavigate();
 
     const [stats, setStats] = useState({
-        totalUsers: 0,
-        presentToday: 0,
-        tasksDoneToday: 0,
-        reportsToday: 0
+        totalKaryawan: 0,
+        karyawanAktifHariIni: 0,
+        laporanHarian: 0,
     });
 
     const [loading, setLoading] = useState(true);
@@ -66,21 +65,20 @@ const Dashboard = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 p-8 text-left">
                     <StatCard 
                         icon={<img src={icon1} alt="karyawan"/>} 
-                        value={loading ? "..." : stats.totalUsers} 
+                        value={loading ? "..." : stats.totalKaryawan} 
                         label="Total Karyawan" 
-                        trend="Terdaftar" 
                         trendUp 
                     />
                     <StatCard 
                         icon={<img src={icon2} alt="laporan"/>} 
-                        value={loading ? "..." : stats.reportsToday} 
+                        value={loading ? "..." : stats.laporanHarian} 
                         label="Laporan Hari Ini" 
                         trend="Baru masuk" 
                         trendUp 
                     />
                     <StatCard 
                         icon={<img src={icon3} alt="kehadiran"/>} 
-                        value={loading ? "..." : stats.presentToday} 
+                        value={loading ? "..." : stats.karyawanAktifHariIni} 
                         label="Karyawan Hadir" 
                         trend="Hari Ini" 
                         trendUp 
@@ -89,7 +87,7 @@ const Dashboard = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 px-8">
                     
-                    {/* 🔥 Quick Action Tambah Karyawan */}
+                    {/* Quick Action Tambah Karyawan */}
                     <QuickButton 
                         label="Tambah Karyawan" 
                         icon={<img src={icon4} alt="add"/>} 
@@ -98,7 +96,15 @@ const Dashboard = () => {
                         })}
                     />
 
-                    <QuickButton label="Buat Tugas Baru" icon={<img src={icon5} alt="task"/>} />
+                    {/* 🔥 Quick Action Buat Tugas Baru (UPDATED) */}
+                    <QuickButton 
+                        label="Buat Tugas Baru" 
+                        icon={<img src={icon5} alt="task"/>} 
+                        onClick={() => navigate("/admin/manajemenTugas", {
+                            state: { openAddModal: true }
+                        })}
+                    />
+
                     <QuickButton label="Export Laporan" icon={<img src={icon6} alt="export"/>} />
                 </div>
 
@@ -147,7 +153,7 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* TUGAS TERBARU */}
+                {/* TUGAS TERBARU (DUMMY LIST) */}
                 <div className="p-8">
                     <div className="bg-white rounded-xl shadow p-6">
                         <div className="flex items-center justify-between mb-4 px-2">
@@ -155,7 +161,10 @@ const Dashboard = () => {
                                 <FiList className="text-green-700" />
                                 Tugas Terbaru (Contoh)
                             </h3>
-                            <button className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white px-4 py-2 rounded-lg font-semibold text-sm shadow">
+                            <button 
+                                onClick={() => navigate("/admin/manajemenTugas", { state: { openAddModal: true } })}
+                                className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white px-4 py-2 rounded-lg font-semibold text-sm shadow cursor-pointer"
+                            >
                                 + Tambah Tugas
                             </button>
                         </div>
@@ -217,7 +226,7 @@ const StatCard = ({ icon, value, label, trend, trendUp }) => (
 const QuickButton = ({ icon, label, onClick }) => (
     <button 
         onClick={onClick}
-        className="bg-white shadow hover:shadow-md transition rounded-2xl py-6 flex flex-col items-center gap-3"
+        className="bg-white shadow hover:shadow-md transition rounded-2xl py-6 flex flex-col items-center gap-3 cursor-pointer"
     >
         <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center text-green-700 text-xl">{icon}</div>
         <p className="font-bold text-sm">{label}</p>

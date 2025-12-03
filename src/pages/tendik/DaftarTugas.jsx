@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AsideTendik from "../../components/AsideTendik";
 import Topbar from "../../components/Topbar";
 import {
-  FiCalendar,
   FiFlag,
   FiUser,
   FiCheckCircle,
@@ -11,21 +10,115 @@ import {
   FiEye
 } from "react-icons/fi";
 import Modal from "../../components/Modal";
+import Swal from "sweetalert2";
 
 const DaftarTugas = () => {
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState([]);
   const [activeTab, setActiveTab] = useState("Semua Tugas");
   const [selectedTask, setSelectedTask] = useState(null);
+  
+  // State untuk statistik yang dihitung dari data tugas
+  const [stats, setStats] = useState([
+    { label: "Tugas Baru", value: 0, color: "text-orange-500" },
+    { label: "Sedang Dikerjakan", value: 0, color: "text-blue-500" },
+    { label: "Selesai Bulan Ini", value: 0, color: "text-green-600" },
+  ]);
 
-  // Tab Filters
   const tabs = ["Semua Tugas", "Baru", "Sedang Dikerjakan", "Selesai"];
 
-  // Stats Data
-  const stats = [
-    { label: "Tugas Baru", value: 2, color: "text-orange-500" },
-    { label: "Sedang Dikerjakan", value: 3, color: "text-blue-500" },
-    { label: "Selesai Bulan Ini", value: 15, color: "text-green-600" },
-  ];
+  // --- HELPER MAPPING ---
+  // Mapping status dari Backend (ENUM) ke Tampilan Frontend
+  const mapStatusBEtoFE = (status) => {
+    switch(status) {
+      case 'BARU': return 'Baru';
+      case 'SEDANG_DIKERJAKAN': return 'Sedang Dikerjakan';
+      case 'SELESAI': return 'Selesai';
+      default: return status;
+    }
+  };
+
+  // Mapping Prioritas dari Backend ke Tampilan Frontend
+  const mapPrioritasBEtoFE = (prio) => {
+    switch(prio) {
+      case 'TINGGI': return 'Prioritas Tinggi';
+      case 'NORMAL': return 'Prioritas Normal';
+      default: return 'Prioritas Normal';
+    }
+  };
+
+  // --- API FETCHING ---
+  const fetchTasks = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      // Menggunakan endpoint /api/tasks yang sudah memfilter berdasarkan user login (assignee atau creator)
+      const response = await fetch("http://localhost:4000/api/tasks", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Format data dari Backend ke Frontend
+        const formattedTasks = data.map(t => ({
+          id: t.id,
+          judul: t.title,
+          deskripsi: t.description || "-",
+          status: mapStatusBEtoFE(t.status),
+          deadline: t.dueDate ? new Date(t.dueDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) : "-",
+          prioritas: mapPrioritasBEtoFE(t.prioritas),
+          assigner: t.createdBy ? t.createdBy.name : "Admin" // Nama pembuat tugas
+        }));
+
+        setTasks(formattedTasks);
+        calculateStats(formattedTasks);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil data tugas:", error);
+    }
+  };
+
+  // Hitung statistik berdasarkan data yang diterima
+  const calculateStats = (taskList) => {
+    const baru = taskList.filter(t => t.status === "Baru").length;
+    const progress = taskList.filter(t => t.status === "Sedang Dikerjakan").length;
+    const selesai = taskList.filter(t => t.status === "Selesai").length;
+
+    setStats([
+      { label: "Tugas Baru", value: baru, color: "text-orange-500" },
+      { label: "Sedang Dikerjakan", value: progress, color: "text-blue-500" },
+      { label: "Selesai Total", value: selesai, color: "text-green-600" },
+    ]);
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  // --- HANDLER UPDATE STATUS ---
+  const handleUpdateStatus = async (id, newStatusBE) => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await fetch(`http://localhost:4000/api/tasks/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatusBE })
+      });
+
+      if (response.ok) {
+        Swal.fire("Berhasil", "Status tugas diperbarui", "success");
+        fetchTasks(); // Refresh data
+      } else {
+        Swal.fire("Gagal", "Gagal memperbarui status", "error");
+      }
+    } catch (error) {
+      Swal.fire("Error", "Terjadi kesalahan koneksi", "error");
+    }
+  };
 
   return (
     <div className="flex bg-gradient-to-b from-[#E8F5E9] via-[#E8F5E9] to-[#DCEDC8] min-h-screen">
@@ -47,22 +140,22 @@ const DaftarTugas = () => {
           ))}
         </div>
 
-        {/* FILTER TABS (Transparent Style) */}
+        {/* FILTER TABS */}
         <div className="bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 flex flex-wrap sm:flex-nowrap overflow-x-auto mr-8 ml-8">
-                        {tabs.map((t, i) => (
-                            <button
-                                key={i}
-                                onClick={() => setActiveTab(i)}
-                                className={`flex-1 text-center px-4 py-3 text-sm font-semibold transition-all duration-200 rounded-lg whitespace-nowrap ${
-                                    i === activeTab 
-                                    ? 'bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white shadow-sm' 
-                                    : 'text-gray-600 hover:bg-gray-50'
-                                }`}
-                            >
-                                {t}
-                            </button>
-                        ))}
-                    </div>
+            {tabs.map((t, i) => (
+                <button
+                    key={i}
+                    onClick={() => setActiveTab(t)}
+                    className={`flex-1 text-center px-4 py-3 text-sm font-semibold transition-all duration-200 rounded-lg whitespace-nowrap ${
+                        activeTab === t 
+                        ? 'bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white shadow-sm' 
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                >
+                    {t}
+                </button>
+            ))}
+        </div>
 
         {/* TASK LIST */}
         <div className="space-y-5 p-8">
@@ -84,7 +177,6 @@ const DaftarTugas = () => {
                 
                 {/* Header: Title & Status Badge */}
                 <div className="flex justify-between items-start mb-2 pr-28"> 
-                  {/* pr-28 agar judul tidak menabrak badge status */}
                   <h3 className="text-lg font-bold text-gray-800 leading-tight">{task.judul}</h3>
                 </div>
                 
@@ -119,30 +211,40 @@ const DaftarTugas = () => {
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-50">
                     
-                    {/* Dynamic Main Action Button */}
+                    {/* BUTTON: Mulai Tugas -> Ubah status jadi SEDANG_DIKERJAKAN */}
                     {task.status === "Baru" && (
-                        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors">
+                        <button 
+                            onClick={() => handleUpdateStatus(task.id, 'SEDANG_DIKERJAKAN')}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors cursor-pointer"
+                        >
                             <FiPlayCircle className="text-sm" /> Mulai Tugas
                         </button>
                     )}
 
+                    {/* BUTTON: Tandai Selesai -> Ubah status jadi SELESAI */}
                     {task.status === "Sedang Dikerjakan" && (
-                        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors">
+                        <button 
+                            onClick={() => handleUpdateStatus(task.id, 'SELESAI')}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors cursor-pointer"
+                        >
                             <FiCheckCircle className="text-sm" /> Tandai Selesai
                         </button>
                     )}
 
                     {/* Secondary Actions */}
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100 transition-colors">
-                        <FiMessageSquare className="text-sm" /> Tambah Catatan
-                    </button>
-                    
-                    {/* View Detail (Optional/Jika perlu) */}
-                    {task.status === "Selesai" && (
-                         <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200 transition-colors">
-                            <FiEye className="text-sm" /> Lihat Detail
+                    {task.status !== "Selesai" && (
+                        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100 transition-colors cursor-pointer">
+                            <FiMessageSquare className="text-sm" /> Tambah Catatan
                         </button>
                     )}
+                    
+                    {/* View Detail */}
+                    <button 
+                        onClick={() => setSelectedTask(task)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200 transition-colors cursor-pointer"
+                    >
+                        <FiEye className="text-sm" /> Lihat Detail
+                    </button>
                 </div>
 
               </div>
@@ -150,11 +252,35 @@ const DaftarTugas = () => {
           })()}
         </div>
 
-        {/* MODAL DETAIL (Opsional - jika tombol detail diklik) */}
+        {/* MODAL DETAIL */}
         {selectedTask && (
              <Modal title="Detail Tugas" onClose={() => setSelectedTask(null)}>
-                 <p className="text-gray-700">{selectedTask.deskripsi}</p>
-                 {/* Isi detail lainnya... */}
+                 <div className="space-y-4">
+                    <div>
+                        <h4 className="font-bold text-gray-800 text-lg">{selectedTask.judul}</h4>
+                        <div className="mt-1 flex gap-2">
+                            <StatusBadge status={selectedTask.status} />
+                            <PrioritasBadge prioritas={selectedTask.prioritas} />
+                        </div>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-500 uppercase font-bold mb-1">Deskripsi</p>
+                        <p className="text-gray-700 text-sm leading-relaxed">{selectedTask.deskripsi}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase font-bold">Deadline</p>
+                            <p className="text-sm font-medium">{selectedTask.deadline}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase font-bold">Pemberi Tugas</p>
+                            <p className="text-sm font-medium">{selectedTask.assigner}</p>
+                        </div>
+                    </div>
+                 </div>
+                 <div className="mt-6 flex justify-end">
+                    <button onClick={() => setSelectedTask(null)} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm font-bold text-gray-700">Tutup</button>
+                 </div>
              </Modal>
         )}
 
@@ -169,9 +295,9 @@ export default DaftarTugas;
 
 const StatusBadge = ({ status }) => {
     const styles = {
-        "Baru": "bg-orange-100 text-orange-600", // Orange untuk baru
-        "Sedang Dikerjakan": "bg-blue-100 text-blue-600", // Biru untuk progress
-        "Selesai": "bg-green-100 text-green-600", // Hijau untuk selesai
+        "Baru": "bg-orange-100 text-orange-600",
+        "Sedang Dikerjakan": "bg-blue-100 text-blue-600",
+        "Selesai": "bg-green-100 text-green-600",
     };
     return (
         <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${styles[status] || "bg-gray-100"}`}>
@@ -185,46 +311,9 @@ const PrioritasBadge = ({ prioritas }) => {
         "Prioritas Normal": "bg-orange-100 text-orange-700",
         "Prioritas Tinggi": "bg-red-100 text-red-700",
     };
-    // Di desain figma, prioritas badge berbentuk kotak kecil berwarna
     return (
-        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${styles[prioritas]}`}>
+        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${styles[prioritas] || "bg-gray-100"}`}>
             {prioritas}
         </span>
     );
 }
-
-/* --- DUMMY DATA --- */
-const initialTasks = [
-  {
-    judul: "Inventarisasi Buku Baru",
-    deskripsi: "Melakukan pencatatan dan katalogisasi buku-buku baru yang baru diterima dari pengadaan bulan November 2025. Total 150 eksemplar buku perlu diinventaris dengan detail lengkap.",
-    status: "Sedang Dikerjakan",
-    deadline: "20 Nov 2025",
-    prioritas: "Prioritas Tinggi",
-    assigner: "Admin Perpustakaan"
-  },
-  {
-    judul: "Update Database Koleksi",
-    deskripsi: "Memperbarui database koleksi perpustakaan dengan menambahkan metadata yang masih kurang dan memperbaiki data yang salah input. Fokus pada koleksi tahun 2020-2023.",
-    status: "Baru",
-    deadline: "25 Nov 2025",
-    prioritas: "Prioritas Normal",
-    assigner: "Admin Perpustakaan"
-  },
-  {
-    judul: "Penyusunan Panduan Layanan Digital",
-    deskripsi: "Membuat panduan penggunaan layanan digital perpustakaan untuk mahasiswa baru, termasuk cara akses e-journal, e-book, dan layanan referensi online.",
-    status: "Sedang Dikerjakan",
-    deadline: "30 Nov 2025",
-    prioritas: "Prioritas Normal",
-    assigner: "Admin Perpustakaan"
-  },
-  {
-    judul: "Pembuatan Laporan Bulanan",
-    deskripsi: "Membuat laporan statistik pengunjung perpustakaan, peminjaman buku, dan layanan referensi untuk bulan Oktober 2025.",
-    status: "Selesai",
-    deadline: "15 Nov 2025",
-    prioritas: "Prioritas Normal",
-    assigner: "Admin Perpustakaan"
-  },
-];
