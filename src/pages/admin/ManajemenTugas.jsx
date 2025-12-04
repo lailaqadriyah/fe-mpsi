@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom"; // IMPORT BARU
+import { useLocation, useNavigate } from "react-router-dom";
 import Aside from "../../components/Aside";
 import Topbar from "../../components/Topbar";
 import {
@@ -10,7 +10,8 @@ import {
     FiFlag,
     FiUser,
     FiPlus,
-    FiAlertCircle
+    FiAlertCircle,
+    FiMessageSquare // <-- Icon baru untuk komentar
 } from "react-icons/fi";
 import Modal from "../../components/Modal";
 import Swal from "sweetalert2";
@@ -33,19 +34,17 @@ const ManajemenTugas = () => {
         late: 0
     });
 
-    const location = useLocation(); // Hook location
-    const navigate = useNavigate(); // Hook navigate
+    const location = useLocation();
+    const navigate = useNavigate();
 
     // --- HELPER FUNCTIONS ---
     const initials = (name) => name ? name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() : "XY";
 
-    // PERBAIKAN: Mapping Status ENUM DB ke Tampilan
     const mapStatusBEtoFE = (status) => {
         switch(status) {
             case 'PENDING': return 'Pending';
-            case 'DALAM_PROGERSS': return 'On Progress'; // Typo DB
+            case 'DALAM_PROGERSS': return 'On Progress';
             case 'SELESAI': return 'Selesai';
-            // Fallback untuk data lama
             case 'BARU': return 'Pending';
             case 'SEDANG_DIKERJAKAN': return 'On Progress';
             default: return status;
@@ -60,7 +59,6 @@ const ManajemenTugas = () => {
         }
     };
 
-    // LOGIKA BARU: Cek Apakah Terlambat
     const checkIsOverdue = (dateString, status) => {
         if (!dateString || status === 'Selesai') return false;
         
@@ -102,7 +100,9 @@ const ManajemenTugas = () => {
                     nama: t.assignee ? t.assignee.name : "Belum Ditunjuk",
                     initial: initials(t.assignee ? t.assignee.name : ""),
                     deadline: t.dueDate ? new Date(t.dueDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) : "-",
-                    prioritas: mapPrioritasBEtoFE(t.prioritas)
+                    prioritas: mapPrioritasBEtoFE(t.prioritas),
+                    // 🔥 MENANGKAP KOMENTAR DARI BACKEND
+                    komentar: t.comments || [] 
                 }));
                 setTasks(formattedTasks);
             }
@@ -131,11 +131,9 @@ const ManajemenTugas = () => {
         fetchUsers();
     }, []);
 
-    // --- EFFECT: AUTO OPEN MODAL FROM DASHBOARD ---
     useEffect(() => {
         if (location.state?.openAddModal) {
             handleAddNewClick();
-            // Bersihkan state agar tidak terbuka terus saat refresh
             navigate(location.pathname, { replace: true, state: {} });
         }
     }, [location]);
@@ -281,7 +279,6 @@ const ManajemenTugas = () => {
                         }
 
                         return filtered.map((task, i) => {
-                            // 🔥 Hitung status terlambat untuk setiap kartu
                             const isOverdue = checkIsOverdue(task.rawDate, task.status);
 
                             return (
@@ -289,8 +286,8 @@ const ManajemenTugas = () => {
                                     className={`
                                         bg-white p-6 rounded-2xl shadow-sm border transition-shadow hover:shadow-md
                                         ${isOverdue 
-                                            ? 'border-l-4 border-l-red-500 border-t-gray-100 border-r-gray-100 border-b-gray-100' // Jika telat: Border kiri merah
-                                            : 'border-gray-100' // Normal
+                                            ? 'border-l-4 border-l-red-500 border-t-gray-100 border-r-gray-100 border-b-gray-100'
+                                            : 'border-gray-100'
                                         }
                                     `}
                                 >
@@ -318,7 +315,7 @@ const ManajemenTugas = () => {
                                             <span className="text-gray-600 font-medium">{task.nama}</span>
                                         </div>
 
-                                        {/* 🔥 Tampilan Deadline: Berubah Merah jika Terlambat */}
+                                        {/* Deadline */}
                                         <div className={`
                                             flex items-center gap-2 
                                             ${isOverdue ? "text-red-600 font-bold bg-red-50 px-2 py-1 rounded-md" : "text-gray-500"}
@@ -334,6 +331,13 @@ const ManajemenTugas = () => {
                                             <FiFlag className={`${task.prioritas.includes('Tinggi') ? 'text-red-500' : 'text-green-600'}`} />
                                             <PrioritasBadge prioritas={task.prioritas} />
                                         </div>
+
+                                        {/* Indicator Ada Komentar */}
+                                        {task.komentar && task.komentar.length > 0 && (
+                                            <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded-md text-xs font-semibold">
+                                                <FiMessageSquare /> {task.komentar.length} Catatan
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Action Buttons */}
@@ -361,10 +365,9 @@ const ManajemenTugas = () => {
                     </Modal>
                 )}
 
-                {/* MODAL - DETAIL TASK */}
+                {/* MODAL - DETAIL TASK (Updated with Comments) */}
                 {selectedTask && (
                     <Modal title="Detail Tugas" onClose={() => setSelectedTask(null)}>
-                        {/* Logic cek terlambat juga bisa dipakai di Detail */}
                         {(() => {
                              const isOverdueDetail = checkIsOverdue(selectedTask.rawDate, selectedTask.status);
                              return (
@@ -397,8 +400,49 @@ const ManajemenTugas = () => {
                                         <p className="text-gray-700 bg-white p-3 border rounded-md">{selectedTask.deskripsi}</p>
                                     </div>
 
+                                    {/* 🔥 SECTION BARU: CATATAN / KOMENTAR */}
+                                    <div className="pt-2 border-t border-gray-100">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <FiMessageSquare className="text-blue-600 text-lg" />
+                                            <h5 className="font-bold text-gray-800">Riwayat Catatan & Progres</h5>
+                                        </div>
+                                        
+                                        <div className="bg-gray-50 rounded-xl p-4 max-h-60 overflow-y-auto space-y-3 border border-gray-200">
+                                            {selectedTask.komentar && selectedTask.komentar.length > 0 ? (
+                                                selectedTask.komentar.map((komen, idx) => (
+                                                    <div key={idx} className="bg-white p-3.5 rounded-lg border border-gray-200 shadow-sm relative group">
+                                                        <div className="flex justify-between items-center mb-1.5 border-b border-gray-100 pb-1.5">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
+                                                                    {initials(komen.author?.name)}
+                                                                </div>
+                                                                <span className="text-xs font-bold text-gray-700">
+                                                                    {komen.author?.name || "User"}
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-[10px] text-gray-400 font-medium">
+                                                                {new Date(komen.createdAt).toLocaleDateString("id-ID", {
+                                                                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                                                                })}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                                            {komen.text}
+                                                        </p>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="text-center py-6 text-gray-400 italic flex flex-col items-center gap-2">
+                                                    <FiMessageSquare className="text-2xl opacity-20"/>
+                                                    <span className="text-xs">Belum ada catatan progres untuk tugas ini.</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {/* --------------------------------------- */}
+
                                     <div className="flex justify-end pt-2">
-                                        <button onClick={() => setSelectedTask(null)} className="px-5 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium text-gray-700">Tutup</button>
+                                        <button onClick={() => setSelectedTask(null)} className="px-5 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium text-gray-700 cursor-pointer">Tutup</button>
                                     </div>
                                 </div>
                              );
