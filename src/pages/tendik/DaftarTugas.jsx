@@ -2,14 +2,7 @@ import React, { useState, useEffect } from "react";
 import AsideTendik from "../../components/AsideTendik";
 import Topbar from "../../components/Topbar";
 import {
-  FiFlag,
-  FiUser,
-  FiCheckCircle,
-  FiMessageSquare,
-  FiPlayCircle,
-  FiEye,
-  FiCalendar,     // Tambahan icon
-  FiAlertCircle   // Tambahan icon warning
+  FiFlag, FiUser, FiCheckCircle, FiMessageSquare, FiPlayCircle, FiEye, FiCalendar, FiAlertCircle, FiSave
 } from "react-icons/fi";
 import Modal from "../../components/Modal";
 import Swal from "sweetalert2";
@@ -19,7 +12,11 @@ const DaftarTugas = () => {
   const [activeTab, setActiveTab] = useState("Semua Tugas");
   const [selectedTask, setSelectedTask] = useState(null);
   
-  // State untuk statistik
+  // State Modal Catatan
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [currentTaskNote, setCurrentTaskNote] = useState(null); 
+  const [noteText, setNoteText] = useState("");
+
   const [stats, setStats] = useState([
     { label: "Pending", value: 0, color: "text-orange-500" },
     { label: "On Progress", value: 0, color: "text-blue-500" },
@@ -28,35 +25,16 @@ const DaftarTugas = () => {
 
   const tabs = ["Semua Tugas", "Pending", "On Progress", "Selesai"];
 
-  // --- LOGIKA CEK TERLAMBAT (Sama seperti di Admin) ---
-  const checkIsOverdue = (dateString, status) => {
-    // Jika tanggal kosong atau status sudah selesai, tidak dianggap terlambat
-    if (!dateString || status === 'Selesai') return false;
-    
-    const deadline = new Date(dateString);
-    const today = new Date();
-    // Reset jam agar perbandingan hanya berdasarkan tanggal
-    today.setHours(0, 0, 0, 0);
-    deadline.setHours(0, 0, 0, 0);
-
-    return deadline < today; // True jika deadline lebih kecil dari hari ini
-  };
-
-  // --- MAPPING STATUS ---
+  // Helper Mappings
   const mapStatusBEtoFE = (status) => {
     switch(status) {
       case 'PENDING': return 'Pending'; 
-      case 'DALAM_PROGERSS': return 'On Progress'; // Typo di DB
+      case 'DALAM_PROGERSS': return 'On Progress'; 
       case 'SELESAI': return 'Selesai';
-      
-      // Fallback
-      case 'BARU': return 'Pending';
-      case 'SEDANG_DIKERJAKAN': return 'On Progress';
       default: return status;
     }
   };
 
-  // Mapping Prioritas
   const mapPrioritasBEtoFE = (prio) => {
     switch(prio) {
       case 'TINGGI': return 'Prioritas Tinggi';
@@ -65,9 +43,23 @@ const DaftarTugas = () => {
     }
   };
 
-  // --- API FETCHING ---
+  const checkIsOverdue = (dateString, status) => {
+    if (!dateString || status === 'Selesai') return false;
+    const deadline = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    deadline.setHours(0, 0, 0, 0);
+    return deadline < today;
+  };
+
+  // --- API FETCH TASKS ---
   const fetchTasks = async () => {
     const token = localStorage.getItem("token");
+    // Ambil ID user yang sedang login dari localStorage
+    const userStr = localStorage.getItem("user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    const currentUserId = user ? user.id : null;
+
     if (!token) return;
 
     try {
@@ -78,18 +70,26 @@ const DaftarTugas = () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Format data
-        const formattedTasks = data.map(t => ({
-          id: t.id,
-          judul: t.title,
-          deskripsi: t.description || "-",
-          status: mapStatusBEtoFE(t.status),
-          // Tambahkan rawDate untuk cek overdue
-          rawDate: t.dueDate, 
-          deadline: t.dueDate ? new Date(t.dueDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) : "-",
-          prioritas: mapPrioritasBEtoFE(t.prioritas),
-          assigner: t.createdBy ? t.createdBy.name : "Admin"
-        }));
+        const formattedTasks = data.map(t => {
+          // --- LOGIKA FILTER KOMENTAR ---
+          // Cari komentar di array 'comments' yang authorId-nya sama dengan user login
+          const myComment = t.comments.find(c => c.authorId === currentUserId);
+          const catatanPribadi = myComment ? myComment.text : ""; // Jika ada ambil text-nya, jika tidak kosong
+
+          return {
+            id: t.id,
+            judul: t.title,
+            deskripsi: t.description || "-",
+            status: mapStatusBEtoFE(t.status),
+            rawDate: t.dueDate, 
+            deadline: t.dueDate ? new Date(t.dueDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) : "-",
+            prioritas: mapPrioritasBEtoFE(t.prioritas),
+            assigner: t.createdBy ? t.createdBy.name : "Admin",
+            
+            // Simpan catatan pribadi user ini
+            catatan: catatanPribadi
+          };
+        });
 
         setTasks(formattedTasks);
         calculateStats(formattedTasks);
@@ -99,7 +99,6 @@ const DaftarTugas = () => {
     }
   };
 
-  // Hitung statistik
   const calculateStats = (taskList) => {
     const baru = taskList.filter(t => t.status === "Pending").length;
     const progress = taskList.filter(t => t.status === "On Progress").length;
@@ -132,12 +131,44 @@ const DaftarTugas = () => {
       if (response.ok) {
         Swal.fire("Berhasil", "Status tugas diperbarui", "success");
         fetchTasks(); 
-      } else {
-        const err = await response.json();
-        Swal.fire("Gagal", err.message || "Gagal memperbarui status", "error");
       }
     } catch (error) {
       Swal.fire("Error", "Terjadi kesalahan koneksi", "error");
+    }
+  };
+
+  // --- HANDLER MODAL CATATAN ---
+  const handleOpenNoteModal = (task) => {
+    setCurrentTaskNote(task);
+    setNoteText(task.catatan); // Isi form dengan catatan yang sudah ada (jika ada)
+    setShowNoteModal(true);
+  };
+
+  // --- HANDLER SIMPAN CATATAN (KE ROUTE BARU) ---
+  const handleSaveNote = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem("token");
+
+    try {
+        // Kita kirim 'text' karena backend membacanya sebagai 'text' untuk tabel TaskComment
+        const response = await fetch(`http://localhost:4000/api/tasks/${currentTaskNote.id}/note`, {
+            method: "POST", 
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ text: noteText }) 
+        });
+
+        if (response.ok) {
+            Swal.fire("Tersimpan", "Catatan berhasil diperbarui", "success");
+            setShowNoteModal(false);
+            fetchTasks(); // Refresh agar tampilan tombol berubah (Tambah -> Edit)
+        } else {
+            Swal.fire("Gagal", "Gagal menyimpan catatan", "error");
+        }
+    } catch (error) {
+        Swal.fire("Error", "Terjadi kesalahan koneksi", "error");
     }
   };
 
@@ -146,12 +177,8 @@ const DaftarTugas = () => {
       <AsideTendik />
 
       <main className="flex-1">
-        <Topbar
-          title="Daftar Tugas"
-          subtitle="Kelola dan selesaikan tugas yang diberikan"
-        />
+        <Topbar title="Daftar Tugas" subtitle="Kelola dan selesaikan tugas yang diberikan" />
 
-        {/* STATS CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8">
           {stats.map((s, i) => (
             <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-32">
@@ -161,7 +188,6 @@ const DaftarTugas = () => {
           ))}
         </div>
 
-        {/* FILTER TABS */}
         <div className="bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 flex flex-wrap sm:flex-nowrap overflow-x-auto mr-8 ml-8">
             {tabs.map((t, i) => (
                 <button
@@ -178,12 +204,9 @@ const DaftarTugas = () => {
             ))}
         </div>
 
-        {/* TASK LIST */}
         <div className="space-y-5 p-8">
           {(() => {
-            const filtered = activeTab === "Semua Tugas" 
-                ? tasks 
-                : tasks.filter((tt) => tt.status === activeTab);
+            const filtered = activeTab === "Semua Tugas" ? tasks : tasks.filter((tt) => tt.status === activeTab);
 
             if (filtered.length === 0) {
               return (
@@ -194,97 +217,75 @@ const DaftarTugas = () => {
             }
 
             return filtered.map((task, i) => {
-              // --- CEK APAKAH TERLAMBAT ---
               const isOverdue = checkIsOverdue(task.rawDate, task.status);
 
               return (
-                <div key={i} 
-                  className={`
-                    bg-white p-6 rounded-2xl shadow-sm border transition-shadow hover:shadow-md relative
-                    ${isOverdue 
-                        ? 'border-l-4 border-l-red-500 border-t-gray-100 border-r-gray-100 border-b-gray-100' 
-                        : 'border-gray-100'
-                    }
-                  `}
-                >
+                <div key={i} className={`bg-white p-6 rounded-2xl shadow-sm border transition-shadow hover:shadow-md relative ${isOverdue ? 'border-l-4 border-l-red-500' : 'border-gray-100'}`}>
                   
-                  {/* Header: Title & Status Badge */}
                   <div className="flex justify-between items-start mb-2 pr-28"> 
-                    <h3 className={`text-lg font-bold leading-tight ${isOverdue ? 'text-gray-800' : 'text-gray-800'}`}>
-                        {task.judul}
-                    </h3>
+                    <h3 className="text-lg font-bold leading-tight text-gray-800">{task.judul}</h3>
                   </div>
                   
-                  {/* Status Badge (Absolute Top Right) */}
                   <div className="absolute top-6 right-6">
-                      <StatusBadge status={task.status} />
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-gray-100 text-gray-600`}>
+                          {task.status}
+                      </span>
                   </div>
 
-                  {/* Description */}
-                  <p className="text-gray-500 text-sm mb-5 leading-relaxed max-w-4xl">
-                    {task.deskripsi}
-                  </p>
+                  <p className="text-gray-500 text-sm mb-5 leading-relaxed max-w-4xl">{task.deskripsi}</p>
 
-                  {/* Metadata Row */}
                   <div className="flex flex-wrap items-center gap-y-3 gap-x-6 text-xs font-medium text-gray-500 mb-6">
-                      
-                      {/* --- DEADLINE SECTION (UPDATED) --- */}
-                      <div className={`
-                          flex items-center gap-1.5 
-                          ${isOverdue ? "text-red-600 font-bold bg-red-50 px-2 py-1 rounded-md" : ""}
-                      `}>
-                          {isOverdue ? (
-                              <FiAlertCircle className="text-red-600 text-sm" />
-                          ) : (
-                              <FiCalendar className="text-gray-400 text-sm" />
-                          )}
-                          <span>
-                              {isOverdue ? `Terlambat: ${task.deadline}` : `Deadline: ${task.deadline}`}
-                          </span>
+                      <div className={`flex items-center gap-1.5 ${isOverdue ? "text-red-600 font-bold bg-red-50 px-2 py-1 rounded-md" : ""}`}>
+                          <FiCalendar className={isOverdue ? "text-red-600" : "text-gray-400"} />
+                          <span>{isOverdue ? `Terlambat: ${task.deadline}` : `Deadline: ${task.deadline}`}</span>
                       </div>
-                      
                       <div className="flex items-center gap-1.5">
                            <FiFlag className={task.prioritas === "Prioritas Tinggi" ? "text-red-500" : "text-green-600"} />
-                           <PrioritasBadge prioritas={task.prioritas} />
+                           <span>{task.prioritas}</span>
                       </div>
-
                       <div className="flex items-center gap-1.5">
                            <FiUser className="text-gray-400" />
-                           <span>Ditugaskan oleh: {task.assigner}</span>
+                           <span>{task.assigner}</span>
                       </div>
+                      
+                      {/* Tanda Ada Catatan */}
+                      {task.catatan && (
+                          <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
+                              <FiMessageSquare /> Ada Catatan
+                          </div>
+                      )}
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-50">
                       
-                      {/* BUTTON: Mulai Tugas -> Kirim 'DALAM_PROGERSS' (Typo DB) */}
                       {task.status === "Pending" && (
                           <button 
                               onClick={() => handleUpdateStatus(task.id, 'DALAM_PROGERSS')}
                               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors cursor-pointer"
                           >
-                              <FiPlayCircle className="text-sm" /> Mulai Tugas
+                              <FiPlayCircle /> Mulai Tugas
                           </button>
                       )}
-
-                      {/* BUTTON: Tandai Selesai -> Kirim 'SELESAI' */}
                       {task.status === "On Progress" && (
                           <button 
                               onClick={() => handleUpdateStatus(task.id, 'SELESAI')}
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors cursor-pointer"
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors"
                           >
-                              <FiCheckCircle className="text-sm" /> Tandai Selesai
+                              <FiCheckCircle /> Tandai Selesai
                           </button>
                       )}
 
-                      {/* Secondary Actions */}
                       {task.status !== "Selesai" && (
-                          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100 transition-colors cursor-pointer">
-                              <FiMessageSquare className="text-sm" /> Tambah Catatan
+                          <button 
+                              onClick={() => handleOpenNoteModal(task)}
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100 transition-colors cursor-pointer"
+                          >
+                              <FiMessageSquare className="text-sm" /> 
+                              {/* Ubah teks tombol jika sudah ada catatan */}
+                              {task.catatan ? "Lihat/Edit Catatan" : "Tambah Catatan"}
                           </button>
                       )}
                       
-                      {/* View Detail */}
                       <button 
                           onClick={() => setSelectedTask(task)}
                           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200 transition-colors cursor-pointer"
@@ -299,44 +300,78 @@ const DaftarTugas = () => {
           })()}
         </div>
 
-        {/* MODAL DETAIL */}
+        {/* MODAL 1: DETAIL TUGAS */}
         {selectedTask && (
              <Modal title="Detail Tugas" onClose={() => setSelectedTask(null)}>
                  <div className="space-y-4">
                     <div>
                         <h4 className="font-bold text-gray-800 text-lg">{selectedTask.judul}</h4>
                         <div className="mt-1 flex gap-2">
-                            <StatusBadge status={selectedTask.status} />
-                            <PrioritasBadge prioritas={selectedTask.prioritas} />
-                            {/* Tampilkan juga badge terlambat di dalam modal */}
-                            {checkIsOverdue(selectedTask.rawDate, selectedTask.status) && (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-600 border border-red-200">
-                                    TERLAMBAT
-                                </span>
-                            )}
+                            <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold">{selectedTask.status}</span>
+                            <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold">{selectedTask.prioritas}</span>
                         </div>
                     </div>
-                    <div className="p-4 bg-gray-50 rounded-lg">
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                         <p className="text-xs text-gray-500 uppercase font-bold mb-1">Deskripsi</p>
                         <p className="text-gray-700 text-sm leading-relaxed">{selectedTask.deskripsi}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-xs text-gray-500 uppercase font-bold">Deadline</p>
-                            <p className={`text-sm font-medium ${checkIsOverdue(selectedTask.rawDate, selectedTask.status) ? "text-red-600 font-bold" : ""}`}>
-                                {selectedTask.deadline}
+                    
+                    {/* Tampilkan Catatan Pribadi di Detail */}
+                    {selectedTask.catatan ? (
+                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <p className="text-xs text-blue-600 uppercase font-bold mb-1 flex items-center gap-1">
+                                <FiMessageSquare /> Catatan Anda
+                            </p>
+                            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                                {selectedTask.catatan}
                             </p>
                         </div>
-                        <div>
-                            <p className="text-xs text-gray-500 uppercase font-bold">Pemberi Tugas</p>
-                            <p className="text-sm font-medium">{selectedTask.assigner}</p>
-                        </div>
+                    ) : (
+                        <p className="text-xs text-gray-400 italic">Belum ada catatan untuk tugas ini.</p>
+                    )}
+
+                    <div className="flex justify-end mt-4">
+                        <button onClick={() => setSelectedTask(null)} className="px-4 py-2 bg-gray-200 rounded text-sm font-bold">Tutup</button>
                     </div>
                  </div>
-                 <div className="mt-6 flex justify-end">
-                    <button onClick={() => setSelectedTask(null)} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm font-bold text-gray-700">Tutup</button>
-                 </div>
              </Modal>
+        )}
+
+        {/* MODAL 2: FORM INPUT/EDIT CATATAN */}
+        {showNoteModal && (
+            <Modal 
+                title={<div className="flex items-center gap-2"><FiMessageSquare/> <span>Catatan Tugas</span></div>} 
+                onClose={() => setShowNoteModal(false)}
+            >
+                <form onSubmit={handleSaveNote} className="space-y-4 mt-2">
+                    <div>
+                        <p className="text-xs font-bold text-gray-500 mb-2">Tugas: {currentTaskNote?.judul}</p>
+                        <textarea 
+                            autoFocus
+                            value={noteText}
+                            onChange={(e) => setNoteText(e.target.value)}
+                            rows={6}
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition placeholder-gray-400"
+                            placeholder="Tuliskan catatan progres, kendala, atau informasi tambahan di sini..."
+                        />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <button 
+                            type="button"
+                            onClick={() => setShowNoteModal(false)}
+                            className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-200"
+                        >
+                            Batal
+                        </button>
+                        <button 
+                            type="submit"
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 flex items-center gap-2 shadow-md"
+                        >
+                            <FiSave /> Simpan Catatan
+                        </button>
+                    </div>
+                </form>
+            </Modal>
         )}
 
       </main>
@@ -345,30 +380,3 @@ const DaftarTugas = () => {
 };
 
 export default DaftarTugas;
-
-/* --- COMPONENTS --- */
-
-const StatusBadge = ({ status }) => {
-    const styles = {
-        "Pending": "bg-orange-100 text-orange-600",
-        "On Progress": "bg-blue-100 text-blue-600",
-        "Selesai": "bg-green-100 text-green-600",
-    };
-    return (
-        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${styles[status] || "bg-gray-100"}`}>
-            {status}
-        </span>
-    );
-};
-
-const PrioritasBadge = ({ prioritas }) => {
-    const styles = {
-        "Prioritas Normal": "bg-orange-100 text-orange-700",
-        "Prioritas Tinggi": "bg-red-100 text-red-700",
-    };
-    return (
-        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${styles[prioritas] || "bg-gray-100"}`}>
-            {prioritas}
-        </span>
-    );
-}
