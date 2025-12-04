@@ -27,7 +27,7 @@ const ManajemenKaryawan = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPosition, setFilterPosition] = useState("");
 
-  // Form Data
+  // Form Data (Updated: Added statusKepegawaian)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -36,6 +36,7 @@ const ManajemenKaryawan = () => {
     position: "",
     joinDate: "",
     role: "",
+    statusKepegawaian: "", // <--- Field Baru
   });
 
   const navigate = useNavigate();
@@ -122,6 +123,7 @@ const ManajemenKaryawan = () => {
       position: "",
       joinDate: "",
       role: "",
+      statusKepegawaian: "", // Reset status
     });
     setShowModalForm(true);
   };
@@ -141,6 +143,7 @@ const ManajemenKaryawan = () => {
       position: user.position || "",
       joinDate: formattedDate,
       role: user.role?.name || "",
+      statusKepegawaian: user.statusKepegawaian || "", // Isi status dari data user
     });
     setSelected(null);
     setShowModalForm(true);
@@ -160,6 +163,13 @@ const ManajemenKaryawan = () => {
       });
       return;
     }
+
+    // Validasi Status Kepegawaian (Opsional, jika wajib bisa di uncomment)
+    /* if (!formData.statusKepegawaian) {
+       Swal.fire("Perhatian", "Silakan pilih status kepegawaian", "warning");
+       return;
+    } 
+    */
 
     const url = isEditMode
       ? `http://localhost:4000/api/admin/users/${editId}`
@@ -319,7 +329,7 @@ const ManajemenKaryawan = () => {
                 </div>
               </div>
 
-              {/* Tombol Tambah Karyawan (DIPINDAHKAN KE SINI) */}
+              {/* Tombol Tambah Karyawan */}
               <button
                 onClick={openAddModal}
                 className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#1B5E20] text-white px-6 py-2.5 rounded-lg font-bold text-sm shadow-md flex items-center gap-2 transition-all whitespace-nowrap"
@@ -364,6 +374,12 @@ const ManajemenKaryawan = () => {
                     <p className="text-xs text-gray-500 font-semibold mb-1">
                       {user.position || user.role?.name}
                     </p>
+                    {/* Tampilkan Status Kepegawaian di Card jika ada */}
+                    {user.statusKepegawaian && (
+                        <span className="inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-100 mb-1 mr-1">
+                            {user.statusKepegawaian}
+                        </span>
+                    )}
                     <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full bg-green-100 text-green-700">
                       Aktif
                     </span>
@@ -383,7 +399,7 @@ const ManajemenKaryawan = () => {
         </div>
       </main>
 
-      {/* --- MODAL DETAIL (pakai Modal.jsx) --- */}
+      {/* --- MODAL DETAIL --- */}
       {selected && (
         <Modal
           title={
@@ -414,21 +430,40 @@ const ManajemenKaryawan = () => {
                     <FiEdit /> Edit
                   </button>
                 </div>
-                <span className="inline-block px-3 py-0.5 text-[11px] font-semibold rounded-full bg-green-50 text-green-700 border border-green-100">
-                  {selected.role?.name || "Karyawan"}
-                </span>
+                <div className="flex gap-2">
+                    <span className="inline-block px-3 py-0.5 text-[11px] font-semibold rounded-full bg-green-50 text-green-700 border border-green-100">
+                    {selected.role?.name || "Karyawan"}
+                    </span>
+                    {/* Badge Status Kepegawaian */}
+                    {selected.statusKepegawaian && (
+                        <span className="inline-block px-3 py-0.5 text-[11px] font-bold rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                            {selected.statusKepegawaian}
+                        </span>
+                    )}
+                </div>
               </div>
             </div>
 
             <div className="space-y-5">
-              <div className="group">
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">
-                  Posisi
-                </label>
-                <p className="text-base font-medium text-gray-800 border-b border-dashed border-gray-200 pb-2">
-                  {selected.position || "-"}
-                </p>
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="group">
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">
+                      Posisi
+                    </label>
+                    <p className="text-base font-medium text-gray-800 border-b border-dashed border-gray-200 pb-2">
+                      {selected.position || "-"}
+                    </p>
+                  </div>
+                  <div className="group">
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">
+                      Status Kepegawaian
+                    </label>
+                    <p className="text-base font-medium text-gray-800 border-b border-dashed border-gray-200 pb-2">
+                      {selected.statusKepegawaian || "-"}
+                    </p>
+                  </div>
               </div>
+
               <div className="group">
                 <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">
                   Email
@@ -546,30 +581,59 @@ const ManajemenKaryawan = () => {
                 placeholder="+62 812-3456-7890"
               />
             </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 block mb-1.5">
-                Posisi/Jabatan
-              </label>
-              <div className="relative">
-                <select
-                  value={formData.position}
-                  onChange={(e) =>
-                    setFormData({ ...formData, position: e.target.value })
-                  }
-                  className="cursor-pointer w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none appearance-none bg-gray-50"
-                >
-                  <option value="">Pilih Jabatan</option>
-                  <option value="Pustakawan">Pustakawan</option>
-                  <option value="Admin Perpus">Admin Perpus</option>
-                  <option value="Staff Sirkulasi">Staff Sirkulasi</option>
-                  <option value="Staff Referensi">Staff Referensi</option>
-                  <option value="Tenaga Teknis">Tenaga Teknis</option>
-                </select>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-                  ▼
+            
+            {/* Field Posisi & Status Kepegawaian (Side by Side) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label className="text-xs font-bold text-gray-700 block mb-1.5">
+                        Posisi/Jabatan
+                    </label>
+                    <div className="relative">
+                        <select
+                        value={formData.position}
+                        onChange={(e) =>
+                            setFormData({ ...formData, position: e.target.value })
+                        }
+                        className="cursor-pointer w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none appearance-none bg-gray-50"
+                        >
+                        <option value="">Pilih Jabatan</option>
+                        <option value="Pustakawan">Pustakawan</option>
+                        <option value="Admin Perpus">Admin Perpus</option>
+                        <option value="Staff Sirkulasi">Staff Sirkulasi</option>
+                        <option value="Staff Referensi">Staff Referensi</option>
+                        <option value="Tenaga Teknis">Tenaga Teknis</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                        ▼
+                        </div>
+                    </div>
                 </div>
-              </div>
+
+                {/* --- FIELD BARU: STATUS KEPEGAWAIAN --- */}
+                <div>
+                    <label className="text-xs font-bold text-gray-700 block mb-1.5">
+                        Status Kepegawaian
+                    </label>
+                    <div className="relative">
+                        <select
+                        value={formData.statusKepegawaian}
+                        onChange={(e) =>
+                            setFormData({ ...formData, statusKepegawaian: e.target.value })
+                        }
+                        className="cursor-pointer w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none appearance-none bg-gray-50"
+                        >
+                        <option value="">Pilih Status</option>
+                        <option value="PNS">PNS</option>
+                        <option value="PTT">PTT</option>
+                        <option value="PHL">PHL</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                        ▼
+                        </div>
+                    </div>
+                </div>
             </div>
+
             <div>
               <label className="text-xs font-bold text-gray-700 block mb-1.5">
                 Tanggal Bergabung

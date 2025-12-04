@@ -9,7 +9,8 @@ import icon6 from "../../assets/icon/ds6.png";
 
 import Aside from "../../components/Aside";
 import Topbar from "../../components/Topbar";
-import { FiClock, FiList, FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
+import Modal from "../../components/Modal";
+import { FiClock, FiList, FiEye, FiUser, FiCalendar } from "react-icons/fi";
 
 const Dashboard = () => {
 
@@ -21,7 +22,46 @@ const Dashboard = () => {
         laporanHarian: 0,
     });
 
+    const [absensiList, setAbsensiList] = useState([]);
+    const [taskList, setTaskList] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // State untuk Modal Lihat Semua Absensi
+    const [showAllAbsensi, setShowAllAbsensi] = useState(false);
+
+    // --- HELPER FUNCTIONS ---
+    const formatTime = (dateString) => {
+        if (!dateString) return "-";
+        return new Date(dateString).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return "-";
+        return new Date(dateString).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
+    const calculateDuration = (start, end) => {
+        if (!start || !end) return "-";
+        const startTime = new Date(start);
+        const endTime = new Date(end);
+        const diff = Math.abs(endTime - startTime) / 1000;
+        const hours = Math.floor(diff / 3600);
+        const minutes = Math.floor((diff % 3600) / 60);
+        return `${hours}j ${minutes}m`;
+    };
+
+    const getStatusType = (status) => {
+        const map = {
+            'PENDING': 'pending',
+            'DALAM_PROGERSS': 'progress',
+            'SELESAI': 'selesai',
+            'HADIR_TEPAT_WAKTU': 'hadir',
+            'TERLAMBAT': 'terlambat',
+            'ABSEN': 'belum',
+            'Dalam Shift': 'shift'
+        };
+        return map[status] || 'default';
+    };
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -40,8 +80,15 @@ const Dashboard = () => {
                 if (response.ok) {
                     const data = await response.json();
                     setStats(data);
-                } else {
-                    console.error("Gagal mengambil data dashboard");
+                    setAbsensiList(data.absensiHariIni || []);
+                    
+                    // Sorting Tugas: Terbaru di atas (berdasarkan updatedAt atau createdAt)
+                    const sortedTasks = (data.tugasTerbaru || []).sort((a, b) => {
+                        const dateA = new Date(a.updatedAt || a.createdAt);
+                        const dateB = new Date(b.updatedAt || b.createdAt);
+                        return dateB - dateA; 
+                    });
+                    setTaskList(sortedTasks);
                 }
             } catch (error) {
                 console.error("Error fetching dashboard:", error);
@@ -53,6 +100,28 @@ const Dashboard = () => {
         fetchDashboardData();
     }, []);
 
+    // Komponen Baris Tabel Absensi (Reusable)
+    const AbsensiRow = ({ row }) => {
+        let displayStatus = row.statusAbsen || (row.checkOut ? "Hadir" : "Dalam Shift");
+        if (row.statusAbsen === "HADIR_TEPAT_WAKTU") displayStatus = "Tepat Waktu";
+        else if (row.statusAbsen === "TERLAMBAT") displayStatus = "Terlambat";
+
+        const statusType = row.checkOut ? (row.statusAbsen === "TERLAMBAT" ? "terlambat" : "hadir") : "shift";
+
+        return (
+            <tr className="hover:bg-green-50 border-b border-gray-50 last:border-none transition-colors">
+                <Td className="font-bold text-gray-700 whitespace-nowrap">{row.user?.name}</Td>
+                <Td className="whitespace-nowrap">{row.user?.position || "-"}</Td>
+                <Td className="font-mono text-green-700 whitespace-nowrap">{formatTime(row.checkIn)}</Td>
+                <Td className="font-mono text-red-700 whitespace-nowrap">{row.checkOut ? formatTime(row.checkOut) : "-"}</Td>
+                <Td className="whitespace-nowrap">{calculateDuration(row.checkIn, row.checkOut)}</Td>
+                <Td>
+                    <StatusBadge type={statusType}>{displayStatus}</StatusBadge>
+                </Td>
+            </tr>
+        );
+    };
+
     return (
         <div className="flex bg-gradient-to-b from-[#E8F5E9] via-[#E8F5E9] to-[#DCEDC8] min-h-screen">
 
@@ -62,6 +131,7 @@ const Dashboard = () => {
 
                 <Topbar title="Dashboard Admin" />
 
+                {/* STATS CARDS */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 p-8 text-left">
                     <StatCard 
                         icon={<img src={icon1} alt="karyawan"/>} 
@@ -85,38 +155,33 @@ const Dashboard = () => {
                     />
                 </div>
 
+                {/* QUICK ACTIONS */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 px-8">
-                    
-                    {/* Quick Action Tambah Karyawan */}
                     <QuickButton 
                         label="Tambah Karyawan" 
                         icon={<img src={icon4} alt="add"/>} 
-                        onClick={() => navigate("/admin/manajemenKaryawan", {
-                            state: { openAddModal: true }
-                        })}
+                        onClick={() => navigate("/admin/manajemenKaryawan", { state: { openAddModal: true } })}
                     />
-
-                    {/* 🔥 Quick Action Buat Tugas Baru (UPDATED) */}
                     <QuickButton 
                         label="Buat Tugas Baru" 
                         icon={<img src={icon5} alt="task"/>} 
-                        onClick={() => navigate("/admin/manajemenTugas", {
-                            state: { openAddModal: true }
-                        })}
+                        onClick={() => navigate("/admin/manajemenTugas", { state: { openAddModal: true } })}
                     />
-
                     <QuickButton label="Export Laporan" icon={<img src={icon6} alt="export"/>} />
                 </div>
 
-                {/* ABSENSI DUMMY */}
+                {/* TABEL ABSENSI HARI INI (PREVIEW MAX 3) */}
                 <div className="p-8">
                     <div className="bg-white rounded-xl shadow p-6">
                         <div className="flex items-center justify-between mb-4 px-2">
                             <h3 className="font-bold text-lg text-green-800 flex items-center gap-2">
                                 <FiClock className="text-green-700" />
-                                Absensi Hari Ini (Contoh)
+                                Absensi Hari Ini
                             </h3>
-                            <button className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white px-4 py-2 rounded-lg text-sm font-semibold shadow flex items-center gap-2">
+                            <button 
+                                onClick={() => setShowAllAbsensi(true)}
+                                className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white px-4 py-2 rounded-lg text-sm font-semibold shadow flex items-center gap-2 hover:opacity-90 transition-all cursor-pointer"
+                            >
                                 <FiEye />
                                 Lihat Semua
                             </button>
@@ -132,40 +197,44 @@ const Dashboard = () => {
                                         <Th>CHECK OUT</Th>
                                         <Th>DURASI</Th>
                                         <Th>STATUS</Th>
-                                        <Th>AKSI</Th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-sm text-left">
-                                    {absensiData.map((row, i) => (
-                                        <tr key={i} className="hover:bg-green-50">
-                                            <Td className="font-bold">{row.nama}</Td>
-                                            <Td>{row.jabatan}</Td>
-                                            <Td>{row.in}</Td>
-                                            <Td>{row.out}</Td>
-                                            <Td>{row.durasi}</Td>
-                                            <Td><StatusBadge type={row.statusType}>{row.status}</StatusBadge></Td>
-                                            <Td><ActionButtons /></Td>
-                                        </tr>
-                                    ))}
+                                    {loading ? (
+                                        <tr><td colSpan="6" className="p-4 text-center text-gray-500">Memuat data...</td></tr>
+                                    ) : absensiList.length === 0 ? (
+                                        <tr><td colSpan="6" className="p-4 text-center text-gray-500">Belum ada karyawan yang check-in hari ini.</td></tr>
+                                    ) : (
+                                        // MAX 3 DATA
+                                        absensiList.slice(0, 3).map((row, i) => (
+                                            <AbsensiRow key={i} row={row} />
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>
+                        {!loading && absensiList.length > 3 && (
+                            <div className="text-center text-xs text-gray-400 mt-4 italic">
+                                Menampilkan 3 dari {absensiList.length} data. Klik "Lihat Semua" untuk selengkapnya.
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* TUGAS TERBARU (DUMMY LIST) */}
+                {/* TABEL TUGAS TERBARU (MAX 3) */}
                 <div className="p-8">
                     <div className="bg-white rounded-xl shadow p-6">
                         <div className="flex items-center justify-between mb-4 px-2">
                             <h3 className="font-bold text-lg text-green-800 flex items-center gap-2">
                                 <FiList className="text-green-700" />
-                                Tugas Terbaru (Contoh)
+                                Tugas Terbaru
                             </h3>
+                            {/* TOMBOL LIHAT SEMUA (Pindah Laman) */}
                             <button 
-                                onClick={() => navigate("/admin/manajemenTugas", { state: { openAddModal: true } })}
-                                className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white px-4 py-2 rounded-lg font-semibold text-sm shadow cursor-pointer"
+                                onClick={() => navigate("/admin/manajemenTugas")} 
+                                className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white px-4 py-2 rounded-lg font-semibold text-sm shadow flex items-center gap-2 hover:opacity-90 transition-all cursor-pointer"
                             >
-                                + Tambah Tugas
+                                <FiEye /> Lihat Semua
                             </button>
                         </div>
 
@@ -178,26 +247,80 @@ const Dashboard = () => {
                                         <th className="px-4 py-3">DEADLINE</th>
                                         <th className="px-4 py-3">PRIORITAS</th>
                                         <th className="px-4 py-3">STATUS</th>
-                                        <th className="px-4 py-3">AKSI</th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-sm text-left">
-                                    {taskData.map((t, i) => (
-                                        <tr key={i} className="hover:bg-green-50">
-                                            <td className="px-4 py-3">{t.judul}</td>
-                                            <td className="px-4 py-3">{t.kepada}</td>
-                                            <td className="px-4 py-3">{t.deadline}</td>
-                                            <td className="px-4 py-3"><PriorityBadge level={t.prioritas} /></td>
-                                            <td className="px-4 py-3"><StatusBadge type={t.statusType}>{t.status}</StatusBadge></td>
-                                            <td className="px-4 py-3"><ActionButtons /></td>
-                                        </tr>
-                                    ))}
+                                    {loading ? (
+                                        <tr><td colSpan="5" className="p-4 text-center text-gray-500">Memuat data...</td></tr>
+                                    ) : taskList.length === 0 ? (
+                                        <tr><td colSpan="5" className="p-4 text-center text-gray-500">Belum ada tugas terbaru.</td></tr>
+                                    ) : (
+                                        // HANYA 3 TERATAS
+                                        taskList.slice(0, 3).map((t, i) => {
+                                            const statusLabel = t.status === 'DALAM_PROGERSS' ? 'On Progress' : t.status;
+                                            return (
+                                                <tr key={i} className="hover:bg-green-50 border-b border-gray-50 last:border-none">
+                                                    <td className="px-4 py-3 font-semibold text-gray-700">{t.title}</td>
+                                                    
+                                                    {/* 🔥 HAPUS AVATAR, HANYA NAMA */}
+                                                    <td className="px-4 py-3 text-gray-700">
+                                                        {t.assignee?.name || "Belum ditentukan"}
+                                                    </td>
+
+                                                    <td className="px-4 py-3 text-gray-500">{formatDate(t.dueDate)}</td>
+                                                    <td className="px-4 py-3"><PriorityBadge level={t.prioritas} /></td>
+                                                    <td className="px-4 py-3">
+                                                        <StatusBadge type={getStatusType(t.status)}>{statusLabel}</StatusBadge>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
                                 </tbody>
                             </table>
                         </div>
-
                     </div>
                 </div>
+
+                {/* --- MODAL LIHAT SEMUA ABSENSI --- */}
+                {showAllAbsensi && (
+                    <Modal
+                        maxWidth="max-w-4xl"
+                        title={
+                            <div className="flex items-center gap-2 text-green-800">
+                                <FiCalendar className="text-xl" />
+                                <span className="font-bold text-lg">Rekap Absensi Hari Ini</span>
+                            </div>
+                        }
+                        onClose={() => setShowAllAbsensi(false)}
+                    >
+                        <div className="overflow-x-auto max-h-[70vh] overflow-y-auto pr-2">
+                            {absensiList.length === 0 ? (
+                                <p className="text-center text-gray-500 py-8">Tidak ada data absensi hari ini.</p>
+                            ) : (
+                                <table className="w-full text-sm">
+                                    <thead className="bg-green-50 text-left sticky top-0 z-10 shadow-sm">
+                                        <tr className="text-green-800 font-bold">
+                                            <th className="px-4 py-3 whitespace-nowrap">NAMA</th>
+                                            <th className="px-4 py-3 whitespace-nowrap">JABATAN</th>
+                                            <th className="px-4 py-3 whitespace-nowrap">CHECK IN</th>
+                                            <th className="px-4 py-3 whitespace-nowrap">CHECK OUT</th>
+                                            <th className="px-4 py-3 whitespace-nowrap">DURASI</th>
+                                            <th className="px-4 py-3 whitespace-nowrap">STATUS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-gray-700">
+                                        {absensiList.map((row, i) => (
+                                            <AbsensiRow key={i} row={row} />
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                        <div className="pb-2"></div>
+                    </Modal>
+                )}
+
             </main>
         </div>
     );
@@ -205,11 +328,7 @@ const Dashboard = () => {
 
 export default Dashboard;
 
-
-// =========================
-//   SUB-KOMPONEN
-// =========================
-
+// ... (Sub-komponen seperti StatCard, QuickButton, Th, Td, StatusBadge, PriorityBadge tetap sama)
 const StatCard = ({ icon, value, label, trend, trendUp }) => (
     <div className="bg-white shadow rounded-2xl p-5 flex gap-4 items-center justify-center">
         <div className="w-14 h-14 rounded-lg flex items-center justify-center text-2xl text-green-700 shadow-sm">{icon}</div>
@@ -224,35 +343,27 @@ const StatCard = ({ icon, value, label, trend, trendUp }) => (
 );
 
 const QuickButton = ({ icon, label, onClick }) => (
-    <button 
-        onClick={onClick}
-        className="bg-white shadow hover:shadow-md transition rounded-2xl py-6 flex flex-col items-center gap-3 cursor-pointer"
-    >
-        <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center text-green-700 text-xl">{icon}</div>
-        <p className="font-bold text-sm">{label}</p>
+    <button onClick={onClick} className="bg-white shadow hover:shadow-md transition rounded-2xl py-6 flex flex-col items-center gap-3 cursor-pointer group">
+        <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center text-green-700 text-xl group-hover:scale-110 transition-transform">{icon}</div>
+        <p className="font-bold text-sm text-gray-700 group-hover:text-green-700 transition-colors">{label}</p>
     </button>
 );
 
-const Th = ({ children }) => (
-    <th className="px-4 py-3">{children}</th>
-);
-
-const Td = ({ children }) => (
-    <td className="px-4 py-3">{children}</td>
-);
+const Th = ({ children }) => <th className="px-4 py-3">{children}</th>;
+const Td = ({ children, className }) => <td className={`px-4 py-3 ${className}`}>{children}</td>;
 
 const StatusBadge = ({ children, type }) => {
     const colors = {
         hadir: "bg-gradient-to-r from-[#C8E6C9] to-[#A5D6A7] text-[#1B5E20]",
+        terlambat: "bg-gradient-to-r from-[#FFCCBC] to-[#FFAB91] text-[#BF360C]", 
         shift: "bg-gradient-to-r from-[#FFE0B2] to-[#FFCC80] text-[#E65100]",
-        belum: "bg-gradient-to-r from-[#FFCDD2] to-[#EF9A9A] text-[#C62828]",
-        progress: "bg-gradient-to-r from-[#FFE0B2] to-[#FFCC80] text-[#E65100]",
+        belum: "bg-gray-100 text-gray-500",
+        progress: "bg-gradient-to-r from-[#BBDEFB] to-[#90CAF9] text-[#0D47A1]",
         selesai: "bg-gradient-to-r from-[#C8E6C9] to-[#A5D6A7] text-[#1B5E20]",
-        pending: "bg-gradient-to-r from-[#FFCDD2] to-[#EF9A9A] text-[#C62828]",
+        pending: "bg-gradient-to-r from-[#FFE0B2] to-[#FFCC80] text-[#E65100]",
     };
-
     return (
-        <span className={`px-3 py-1 rounded-full text-xs font-bold ${colors[type] || 'bg-gray-100'}`}>
+        <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide whitespace-nowrap shadow-sm ${colors[type] || 'bg-gray-100 text-gray-600'}`}>
             {children}
         </span>
     );
@@ -260,37 +371,9 @@ const StatusBadge = ({ children, type }) => {
 
 const PriorityBadge = ({ level }) => {
     const color = {
-        Tinggi: "bg-gradient-to-r from-[#FFE0B2] to-[#FFCC80] text-[#E65100]",
-        Normal: "bg-gradient-to-r from-[#C8E6C9] to-[#A5D6A7] text-[#1B5E20]",
-        Urgent: "bg-gradient-to-r from-[#FFCDD2] to-[#EF9A9A] text-[#C62828]",
-    }[level];
-
-    return (
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${color || 'bg-gray-100'}`}>
-            {level}
-        </span>
-    );
+        TINGGI: "bg-red-100 text-red-700",
+        NORMAL: "bg-orange-100 text-orange-700",
+        RENDAH: "bg-gray-50 text-gray-700 border border-gray-200",
+    }[level] || "bg-gray-50 text-gray-600";
+    return <span className={`px-2 py-1 rounded text-[10px] font-semibold ${color}`}>{level}</span>;
 };
-
-const ActionButtons = () => (
-    <div className="flex gap-2 text-green-700">
-        <button className="w-[35px] h-[35px] flex items-center justify-center rounded-lg bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] hover:shadow-sm hover:opacity-90 transition-all text-[#1976D2]">
-            <FiEye className="text-lg" />
-        </button>
-        <button className="w-[35px] h-[35px] flex items-center justify-center rounded-lg bg-gradient-to-r from-[#FFEBEE] to-[#FFCDD2] hover:shadow-sm hover:opacity-90 transition-all text-[#D32F2F]">
-            <FiEdit className="text-lg" />
-        </button> 
-    </div>
-);
-
-// DUMMY DATA
-const absensiData = [
-    { nama: "Ahmad Fauzi", jabatan: "Pustakawan", in: "08:00", out: "17:00", durasi: "9 jam", status: "Hadir", statusType: "hadir" },
-    { nama: "Siti Rahma", jabatan: "Admin Perpus", in: "08:15", out: "-", durasi: "6 jam 45 menit", status: "Dalam Shift", statusType: "shift" },
-    { nama: "Budi Santoso", jabatan: "Petugas Sirkulasi", in: "-", out: "-", durasi: "-", status: "Belum Absen", statusType: "belum" },
-];
-
-const taskData = [
-    { judul: "Inventarisasi Buku Baru", kepada: "Ahmad Fauzi", deadline: "20 Nov 2025", prioritas: "Tinggi", status: "Dalam Progress", statusType: "progress" },
-    { judul: "Pembuatan Laporan Bulanan", kepada: "Siti Rahma", deadline: "15 Nov 2025", prioritas: "Normal", status: "Selesai", statusType: "selesai" },
-];
