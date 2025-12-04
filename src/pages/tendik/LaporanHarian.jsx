@@ -1,21 +1,22 @@
 import React, { useState } from "react";
 import AsideTendik from "../../components/AsideTendik";
 import Topbar from "../../components/Topbar";
-import { FiSend } from "react-icons/fi";
+import { FiSend, FiUploadCloud } from "react-icons/fi";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
 const LaporanHarian = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  
+  // State untuk Tab (Harian / Perencanaan)
+  const [activeTab, setActiveTab] = useState("harian"); // 'harian' | 'perencanaan'
 
   // State Form
   const [tanggal, setTanggal] = useState(new Date().toISOString().slice(0, 10));
-  const [jenis, setJenis] = useState("");
   const [judul, setJudul] = useState("");
   const [deskripsi, setDeskripsi] = useState("");
-  const [hasil, setHasil] = useState(""); // Bisa difungsikan sebagai "Catatan" juga sesuai desain
-  const [catatan, setCatatan] = useState(""); // Field tambahan sesuai UI
+  const [catatan, setCatatan] = useState(""); 
   const [dok, setDok] = useState(null);
 
   const handleSubmit = async (e) => {
@@ -28,7 +29,6 @@ const LaporanHarian = () => {
       return;
     }
 
-    // Validasi sederhana
     if (!judul || !deskripsi) {
       Swal.fire("Peringatan", "Judul dan Deskripsi wajib diisi!", "warning");
       return;
@@ -37,53 +37,41 @@ const LaporanHarian = () => {
     setLoading(true);
 
     try {
-      // 1. Siapkan FormData untuk upload file & data teks
       const formData = new FormData();
       formData.append("date", new Date(tanggal).toISOString());
 
-      // 2. Gabungkan data form menjadi satu string formatted untuk kolom 'note' di DB
-      // Format:
-      // [Jenis Kegiatan] Judul Kegiatan
-      // Deskripsi: ...
-      // Catatan/Hasil: ...
-      const combinedNote = `[${jenis || "Umum"}] ${judul}\n\nDeskripsi:\n${deskripsi}\n\nCatatan:\n${catatan || "-"}\n\nHasil:\n${hasil || "-"}`;
+      // Tentukan Prefix berdasarkan Tab yang aktif
+      const jenisLaporan = activeTab === "harian" ? "Laporan Harian" : "Laporan Perencanaan";
+      
+      // Format catatan: [Jenis] Judul ...
+      const combinedNote = `[${jenisLaporan}] ${judul}\n\nDeskripsi:\n${deskripsi}\n\nCatatan:\n${catatan || "-"}`;
       
       formData.append("note", combinedNote);
 
-      // 3. Tambahkan file jika ada (nama field harus 'attachments' sesuai backend route)
       if (dok) {
         formData.append("attachments", dok);
       }
 
-      // 4. Kirim ke Backend
       const response = await fetch("http://localhost:4000/api/reports", {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-          // Jangan set Content-Type secara manual saat menggunakan FormData, 
-          // browser akan mengaturnya otomatis dengan boundary yang benar.
-        },
+        headers: { "Authorization": `Bearer ${token}` },
         body: formData,
       });
 
       if (response.ok) {
         await Swal.fire({
           icon: "success",
-          title: "Laporan Terkirim",
-          text: "Laporan harian Anda berhasil disimpan ke sistem.",
+          title: "Berhasil",
+          text: `${jenisLaporan} berhasil dikirim.`,
           timer: 2000,
           showConfirmButton: false
         });
 
         // Reset form
-        setJenis("");
         setJudul("");
         setDeskripsi("");
-        setHasil("");
         setCatatan("");
         setDok(null);
-        // Opsional: Redirect ke riwayat atau dashboard
-        // navigate("/tendik/riwayatAktivitas"); 
       } else {
         const errData = await response.json();
         throw new Error(errData.message || "Gagal mengirim laporan");
@@ -91,152 +79,154 @@ const LaporanHarian = () => {
 
     } catch (error) {
       console.error("Error submit laporan:", error);
-      Swal.fire("Gagal", error.message || "Terjadi kesalahan koneksi ke server", "error");
+      Swal.fire("Gagal", error.message || "Terjadi kesalahan koneksi", "error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex bg-gradient-to-b from-[#E8F5E9] via-[#E8F5E9] to-[#DCEDC8] min-h-screen">
+    <div className="flex bg-[#F0F4F0] min-h-screen font-sans">
       <AsideTendik />
 
-      <main className="flex-1">
-        <Topbar
-          title="Laporan Harian"
-          subtitle="Buat dan kirim laporan kegiatan harian Anda"
-        />
+      <main className="flex-1 bg-gradient-to-b from-[#E8F5E9] via-[#E8F5E9] to-[#DCEDC8] overflow-y-auto">
+        <Topbar title="Laporan" />
 
-        <div className="bg-white rounded-xl shadow p-8 mt-8 mx-8 mb-8">
-          <h2 className="text-[#1B5E20] font-bold text-lg mb-6 text-left">
-            Buat Laporan Harian Baru
-          </h2>
+        <div className="mt-8 mx-8">
+          
+          {/* --- TAB NAVIGATION (Sesuai Desain) --- */}
+          <div className="flex rounded-xl overflow-hidden border-b border-gray-200 mb-8">
+            <button
+              onClick={() => setActiveTab("harian")}
+              className={`flex-1 py-4 text-sm font-bold transition-all duration-200 
+                ${activeTab === "harian" 
+                  ? "bg-[#2E7D32] text-white" 
+                  : "bg-white text-gray-500 hover:bg-gray-50"
+                }`}
+            >
+              Laporan Harian
+            </button>
+            <button
+              onClick={() => setActiveTab("perencanaan")}
+              className={`flex-1 py-4 text-sm font-bold transition-all duration-200 
+                ${activeTab === "perencanaan" 
+                  ? "bg-[#2E7D32] text-white" 
+                  : "bg-white text-gray-500 hover:bg-gray-50"
+                }`}
+            >
+              Laporan Perencanaan
+            </button>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Tanggal Laporan */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5 text-left">
-                Tanggal Laporan
-              </label>
-              <input
-                type="date"
-                required
-                value={tanggal}
-                onChange={(e) => setTanggal(e.target.value)}
-                className="w-64 px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none text-gray-700 item-left"
-              />
-            </div>
+          {/* --- FORM CARD --- */}
+          <div className="bg-white rounded-b-xl shadow-sm p-8 min-h-[500px] mb-8">
+            
+            <h2 className="text-[#1B5E20] font-bold text-xl mb-8 text-left">
+              {activeTab === "harian" ? "Buat Laporan Harian Baru" : "Buat Laporan Perencanaan Baru"}
+            </h2>
 
-            {/* Jenis Kegiatan (Dropdown biar lebih rapi, optional) */}
-            <div>
-               <label className="block text-xs font-bold text-gray-700 mb-1.5 text-left">
-                Jenis Kegiatan
-              </label>
-              <select 
-                value={jenis}
-                onChange={(e) => setJenis(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white text-gray-700"
-              >
-                <option value="">-- Pilih Jenis Kegiatan --</option>
-                <option value="Administrasi">Administrasi</option>
-                <option value="Layanan Sirkulasi">Layanan Sirkulasi</option>
-                <option value="Katalogisasi">Katalogisasi</option>
-                <option value="Referensi">Layanan Referensi</option>
-                <option value="Teknis">Teknis & Pemeliharaan</option>
-                <option value="Lainnya">Lainnya</option>
-              </select>
-            </div>
-
-            {/* Judul Kegiatan */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5 text-left">
-                Judul Kegiatan <span className="text-red-500">*</span>
-              </label>
-              <input
-                required
-                value={judul}
-                onChange={(e) => setJudul(e.target.value)}
-                placeholder="Contoh: Input Data Buku Baru"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none placeholder-gray-400"
-              />
-            </div>
-
-            {/* Deskripsi Kegiatan */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5 text-left">
-                Deskripsi Kegiatan <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                required
-                value={deskripsi}
-                onChange={(e) => setDeskripsi(e.target.value)}
-                rows={4}
-                placeholder="Jelaskan detail kegiatan yang telah dilakukan..."
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none placeholder-gray-400"
-              />
-            </div>
-
-            {/* Catatan Tambahan */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5 text-left">
-                Catatan / Kendala (Opsional)
-              </label>
-              <textarea
-                value={catatan}
-                onChange={(e) => setCatatan(e.target.value)}
-                rows={2}
-                placeholder="Catatan atau kendala yang dihadapi..."
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none placeholder-gray-400"
-              />
-            </div>
-
-            {/* Hasil (Opsional - jika diperlukan untuk report admin) */}
-            {/* <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5 text-left">
-                Hasil / Output (Opsional)
-              </label>
-              <input
-                value={hasil}
-                onChange={(e) => setHasil(e.target.value)}
-                placeholder="Contoh: 50 buku terdata"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none placeholder-gray-400"
-              />
-            </div> */}
-
-            {/* Dokumentasi (Upload) */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5 text-left">
-                Dokumentasi (Foto/Dokumen)
-              </label>
-              <div className="mt-1 border border-dashed border-gray-300 rounded-lg p-3 text-center hover:bg-gray-50 transition-colors relative">
-                <input
-                  type="file"
-                  onChange={(e) => setDok(e.target.files[0])}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  accept="image/*,.pdf,.doc,.docx"
-                />
-                <div className="text-xs font-bold text-gray-500">
-                  {dok ? (
-                    <span className="text-green-600">File terpilih: {dok.name}</span>
-                  ) : (
-                    "Klik untuk upload foto atau dokumen bukti kegiatan"
-                  )}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              
+              {/* Tanggal */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 text-left">
+                  Tanggal Laporan
+                </label>
+                <div className="relative max-w-md">
+                    <input
+                    type="date"
+                    required
+                    value={tanggal}
+                    onChange={(e) => setTanggal(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-600 outline-none text-gray-700 bg-white"
+                    />
                 </div>
               </div>
-            </div>
 
-            {/* Tombol Submit */}
-            <div className="flex justify-end pt-4">
-              <button
-                type="submit"
-                disabled={loading}
-                className={`bg-[#43A047] hover:bg-[#2E7D32] text-white px-8 py-2.5 rounded-lg font-bold text-sm shadow-md flex items-center gap-2 transition-all cursor-pointer ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
-              >
-                <FiSend className="text-lg" />
-                {loading ? "Mengirim..." : "Kirim Laporan"}
-              </button>
-            </div>
-          </form>
+              {/* Judul Kegiatan */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 text-left">
+                  Judul Kegiatan
+                </label>
+                <input
+                  required
+                  value={judul}
+                  onChange={(e) => setJudul(e.target.value)}
+                  placeholder="Masukan judul kegiatan"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-600 outline-none placeholder-gray-400"
+                />
+              </div>
+
+              {/* Deskripsi Kegiatan */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 text-left">
+                  Deskripsi Kegiatan
+                </label>
+                <textarea
+                  required
+                  value={deskripsi}
+                  onChange={(e) => setDeskripsi(e.target.value)}
+                  rows={5}
+                  placeholder="Jelaskan detail kegiatan yang telah dilakukan..."
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-600 outline-none placeholder-gray-400 resize-none"
+                />
+              </div>
+
+              {/* Catatan */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 text-left">
+                  Catatan
+                </label>
+                <textarea
+                  value={catatan}
+                  onChange={(e) => setCatatan(e.target.value)}
+                  rows={3}
+                  placeholder="Catatan atau kendala yang dihadapi (opsional)"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-600 outline-none placeholder-gray-400 resize-none"
+                />
+              </div>
+
+              {/* Dokumentasi (Hanya muncul di Laporan Harian sesuai logika umum, tapi jika desain mau dua-duanya ada, biarkan saja) */}
+              {activeTab === "harian" && (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 text-left">
+                        Dokumentasi (opsional)
+                    </label>
+                    <div className="mt-1 border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 transition-colors relative bg-gray-50">
+                        <input
+                        type="file"
+                        onChange={(e) => setDok(e.target.files[0])}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        accept="image/*,.pdf,.doc,.docx"
+                        />
+                        <div className="flex flex-col items-center justify-center text-gray-500 gap-2">
+                            <FiUploadCloud className="text-3xl text-gray-400"/>
+                            <p className="text-sm font-medium">
+                                {dok ? (
+                                <span className="text-green-600 font-bold">File terpilih: {dok.name}</span>
+                                ) : (
+                                "Klik untuk upload foto atau dokumen"
+                                )}
+                            </p>
+                        </div>
+                    </div>
+                  </div>
+              )}
+
+              {/* Tombol Submit */}
+              <div className="flex justify-end pt-6">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`bg-[#43A047] hover:bg-[#2E7D32] text-white px-10 py-3 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 transition-all transform active:scale-95 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+                >
+                  {loading ? "Mengirim..." : activeTab === "harian" ? "Kirim Laporan" : "Simpan Perencanaan"}
+                  {!loading && <FiSend className="text-lg" />}
+                </button>
+              </div>
+
+            </form>
+          </div>
         </div>
       </main>
     </div>
