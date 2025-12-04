@@ -9,23 +9,9 @@ import {
   FiCreditCard,
   FiUserPlus,
   FiSearch,
-  FiList,
 } from "react-icons/fi";
 import Modal from "../../components/Modal";
 import Swal from "sweetalert2";
-
-// Komponen untuk tombol QuickButton
-const QuickButton = ({ label, icon, onClick }) => (
-  <button
-    onClick={onClick}
-    className="bg-white shadow hover:shadow-md transition rounded-2xl py-6 flex flex-col items-center gap-3"
-  >
-    <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center text-green-700 text-xl">
-      {icon}
-    </div>
-    <p className="font-bold text-sm">{label}</p>
-  </button>
-);
 
 const ManajemenKaryawan = () => {
   const [users, setUsers] = useState([]);
@@ -297,24 +283,12 @@ const ManajemenKaryawan = () => {
           subtitle="Kelola data tenaga kependidikan perpustakaan"
         />
 
-        {/* Tambahkan QuickButton untuk "Lihat Pengajuan Cuti" */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-16 mb-2 px-4 pt-6">
-          <QuickButton
-            label="Tambah Karyawan"
-            icon={<FiUserPlus className="text-xl" />}
-            onClick={openAddModal}
-          />
-          <QuickButton
-            label="Lihat Pengajuan Cuti"
-            icon={<FiList className="text-xl" />}
-            onClick={() => navigate("")}
-          />
-        </div>
-
-        {/* --- SEARCH & FILTER --- */}
+        {/* --- SEARCH, FILTER & ADD BUTTON --- */}
         <div className="flex items-start gap-6 mb-8 p-8">
           <div className="flex-1 bg-white rounded-xl shadow px-4 py-6">
             <div className="flex flex-col md:flex-row items-center gap-4">
+              
+              {/* Search Bar */}
               <div className="flex-1 relative w-full">
                 <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -325,6 +299,8 @@ const ManajemenKaryawan = () => {
                   className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
                 />
               </div>
+
+              {/* Filter Dropdown */}
               <div className="relative w-full md:w-48">
                 <select
                   value={filterPosition}
@@ -342,6 +318,16 @@ const ManajemenKaryawan = () => {
                   ▼
                 </div>
               </div>
+
+              {/* Tombol Tambah Karyawan (DIPINDAHKAN KE SINI) */}
+              <button
+                onClick={openAddModal}
+                className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#1B5E20] text-white px-6 py-2.5 rounded-lg font-bold text-sm shadow-md flex items-center gap-2 transition-all whitespace-nowrap"
+              >
+                <FiUserPlus className="text-lg" />
+                Tambah Karyawan
+              </button>
+
             </div>
           </div>
         </div>

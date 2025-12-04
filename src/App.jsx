@@ -18,6 +18,8 @@ import LaporanHarian from './pages/tendik/LaporanHarian';
 import DaftarTugas from './pages/tendik/DaftarTugas';
 import RiwayatAktivitas from './pages/tendik/RiwayatAktivitas';
 import Profil from './pages/tendik/Profil';
+import PengajuanCuti from './pages/tendik/PengajuanCuti';
+import LihatCuti from './pages/admin/LihatCuti';
 
 
 function App() {
@@ -34,6 +36,7 @@ function App() {
           <Route path="/admin/laporan" element={<LaporanRekap />} />
           <Route path="/admin/absensi" element={<Absensi />} />
           <Route path="/admin/settings" element={<Settings />} />
+          <Route path="/admin/lihatCuti" element={<LihatCuti />} />
 
           <Route path="/tendik/dashboardTendik" element={<DashboardTendik />} />
           <Route path="/tendik/absensiDigital" element={<AbsensiDigital />} />
@@ -41,6 +44,7 @@ function App() {
           <Route path="/tendik/daftarTugas" element={<DaftarTugas />} />
           <Route path="/tendik/riwayatAktivitas" element={<RiwayatAktivitas />} />
           <Route path="/tendik/profil" element={<Profil />} />
+          <Route path="/tendik/pengajuanCuti" element={<PengajuanCuti />} />
           {/* <Route path="/detail-kursus/:id" element={<DetailKursus />} />
           <Route path="/bayar-kursus/:id" element={<Pembayaran />} />
           <Route path="/profile" element={<Profile />} />
