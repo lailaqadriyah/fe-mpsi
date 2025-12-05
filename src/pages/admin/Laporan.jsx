@@ -11,7 +11,7 @@ const LaporanRekap = () => {
   const [jenisData, setJenisData] = useState("Rekap Absensi");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [format, setFormat] = useState("PDF");
+  const [format, setFormat] = useState("Excel"); // Default Excel
 
   const [data, setData] = useState({
     analisisProduktivitas: { rataRataHadir: 0 },
@@ -50,19 +50,15 @@ const LaporanRekap = () => {
   };
 
   useEffect(() => {
-    // Set default dates
     const date = new Date();
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
     setStartDate(firstDay.toISOString().split('T')[0]);
     setEndDate(date.toISOString().split('T')[0]);
-
     fetchLaporan();
   }, []);
 
-  // --- 2. LOGIKA CHART (VISUALISASI: HADIR, ABSEN, CUTI) ---
-  // Grafik tetap 3 warna: Hadir (Gabungan), Absen, Cuti
+  // --- 2. LOGIKA CHART ---
   const { rataRataHadir } = data.analisisProduktivitas;
-  // Data detail untuk Legend (4 Kategori)
   const { kehadiranTepatWaktu, terlambat, absen, cuti } = data.statistikDetail;
 
   const p1 = rataRataHadir;
@@ -74,18 +70,71 @@ const LaporanRekap = () => {
     #42A5F5 ${p2}% 100%
   )`;
 
-  // --- 3. HANDLER EXPORT ---
-  const handleExportClick = () => {
+  // --- 3. HANDLER EXPORT (DIPERBAIKI: Menggunakan Fetch Blob) ---
+  const handleExportClick = async () => {
     if (!startDate || !endDate) {
         Swal.fire("Peringatan", "Harap pilih rentang tanggal terlebih dahulu.", "warning");
         return;
     }
 
-    if (format === "PDF") {
-        Swal.fire("Info", "Fitur Export PDF sedang dalam pengembangan.", "info");
-    } else {
-        const url = `http://localhost:4000/api/admin/export/attendance?format=xlsx&from=${startDate}&to=${endDate}`;
-        window.open(url, '_blank');
+    try {
+        const token = localStorage.getItem("token");
+        
+        let endpoint = "";
+        let filenamePrefix = "";
+
+        // Tentukan Endpoint berdasarkan Jenis Data
+        if (jenisData === "Rekap Absensi") {
+            endpoint = "http://localhost:4000/api/admin/export/attendance";
+            filenamePrefix = "Rekap_Absensi";
+        } else if (jenisData === "Rekap Penyelesaian Tugas") {
+            endpoint = "http://localhost:4000/api/admin/export/tasks";
+            filenamePrefix = "Rekap_Tugas";
+        }
+
+        // Tentukan Format
+        const fileFormat = format.toLowerCase() === "pdf" ? "pdf" : "xlsx";
+        const extension = format.toLowerCase() === "pdf" ? "pdf" : "xlsx";
+
+        // Buat Query Params
+        const queryParams = new URLSearchParams({
+            from: startDate,
+            to: endDate,
+            format: fileFormat
+        }).toString();
+
+        // PENTING: Request menggunakan FETCH agar Header Auth terbawa
+        const response = await fetch(`${endpoint}?${queryParams}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}` // Header Auth dimasukkan di sini
+            }
+        });
+
+        if (!response.ok) {
+            // Coba baca pesan error JSON jika ada
+            const errJson = await response.json().catch(() => ({}));
+            throw new Error(errJson.message || "Gagal export data.");
+        }
+
+        // PROSES DOWNLOAD FILE (BLOB)
+        const blob = await response.blob(); // Ubah response jadi blob binary
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filenamePrefix}_${startDate}_sd_${endDate}.${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Bersihkan URL sementara
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        Swal.fire("Berhasil", `File ${jenisData} (${format}) berhasil diunduh.`, "success");
+
+    } catch (error) {
+        console.error("Export Error:", error);
+        Swal.fire("Gagal", error.message || "Terjadi kesalahan saat mengunduh laporan.", "error");
     }
   };
 
@@ -164,8 +213,8 @@ const LaporanRekap = () => {
                     onChange={(e) => setFormat(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-gray-50 text-gray-700 focus:ring-2 focus:ring-green-500 outline-none appearance-none cursor-pointer"
                 >
-                    <option value="PDF">PDF</option>
                     <option value="Excel">Excel</option>
+                    <option value="PDF">PDF</option>
                 </select>
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -177,7 +226,7 @@ const LaporanRekap = () => {
             <div className="lg:col-span-1">
               <button 
                 onClick={handleExportClick}
-                className="w-full bg-[#0288D1] hover:bg-[#0277BD] text-white font-bold py-2.5 px-4 rounded-lg shadow-md flex items-center justify-center gap-2 transition-all h-[42px]"
+                className="w-full bg-[#0288D1] hover:bg-[#0277BD] text-white font-bold py-2.5 px-4 rounded-lg shadow-md flex items-center justify-center gap-2 transition-all h-[42px] cursor-pointer"
               >
                 <FiDownload className="text-lg" />
                 <span className="hidden xl:inline">Ekspor</span> 
@@ -187,7 +236,7 @@ const LaporanRekap = () => {
           </div>
         </div>
 
-        {/* Analisis Absensi Chart */}
+        {/* CHART & TABLE SECTION (TIDAK BERUBAH) */}
         <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm border border-gray-100 ml-8 mr-8">
           <h2 className="font-bold text-lg text-green-800 mb-6 flex items-center gap-2">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -205,13 +254,11 @@ const LaporanRekap = () => {
               ) : (
                   <>
                     <div className="flex justify-center py-4">
-                        {/* Dynamic Donut Chart */}
                         <div className="relative w-48 h-48">
                         <div
                             className="w-full h-full rounded-full transition-all duration-1000"
                             style={{ background: chartBackground }}
                         ></div>
-                        {/* Lubang Donut */}
                         <div className="absolute inset-4 bg-[#E8F5E9] rounded-full flex flex-col items-center justify-center">
                             <span className="text-3xl font-extrabold text-green-900">
                             {rataRataHadir}%
@@ -223,40 +270,12 @@ const LaporanRekap = () => {
                         </div>
                     </div>
 
-                    {/* Legend Data: Kembali ke 4 Kategori (Tepat Waktu, Terlambat, Absen, Cuti) */}
                     <div className="mt-8 bg-white rounded-xl p-6 shadow-sm border border-gray-100 text-left">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-                            {/* Tepat Waktu */}
-                            <div>
-                                <p className="text-2xl font-bold text-[#4CAF50] mb-1">
-                                {kehadiranTepatWaktu}%
-                                </p>
-                                <span className="text-gray-600 text-xs font-medium">Tepat Waktu</span>
-                            </div>
-
-                            {/* Terlambat */}
-                            <div>
-                                <p className="text-2xl font-bold text-[#FFC107] mb-1">
-                                {terlambat}%
-                                </p>
-                                <span className="text-gray-600 text-xs font-medium">Terlambat</span>
-                            </div>
-                            
-                            {/* Absen */}
-                            <div>
-                                <p className="text-2xl font-bold text-[#EF5350] mb-1">
-                                {absen}%
-                                </p>
-                                <span className="text-gray-600 text-xs font-medium">Absen</span>
-                            </div>
-
-                            {/* Cuti */}
-                            <div>
-                                <p className="text-2xl font-bold text-[#42A5F5] mb-1">
-                                {cuti}%
-                                </p>
-                                <span className="text-gray-600 text-xs font-medium">Cuti</span>
-                            </div>
+                            <div><p className="text-2xl font-bold text-[#4CAF50] mb-1">{kehadiranTepatWaktu}%</p><span className="text-gray-600 text-xs font-medium">Tepat Waktu</span></div>
+                            <div><p className="text-2xl font-bold text-[#FFC107] mb-1">{terlambat}%</p><span className="text-gray-600 text-xs font-medium">Terlambat</span></div>
+                            <div><p className="text-2xl font-bold text-[#EF5350] mb-1">{absen}%</p><span className="text-gray-600 text-xs font-medium">Absen</span></div>
+                            <div><p className="text-2xl font-bold text-[#42A5F5] mb-1">{cuti}%</p><span className="text-gray-600 text-xs font-medium">Cuti</span></div>
                         </div>
                     </div>
                   </>
@@ -265,14 +284,9 @@ const LaporanRekap = () => {
           </div>
         </div>
 
-        {/* Tabel Rekap */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ml-8 mr-8 mb-8">
-          
-          {/* Tabel Rekap Absensi */}
           <div className="bg-white rounded-xl shadow p-5 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-green-800">Rekap Absensi (Per Karyawan)</h3>
-            </div>
+            <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-green-800">Rekap Absensi (Per Karyawan)</h3></div>
             <div className="overflow-x-auto">
               <table className="w-full table-auto text-sm">
                 <thead>
@@ -293,7 +307,6 @@ const LaporanRekap = () => {
                       data.rekapAbsensi.map((row, i) => (
                         <tr key={i} className="hover:bg-green-50 border-b border-gray-50 last:border-0">
                           <td className="px-4 py-3 font-medium text-gray-700">{row.karyawan}</td>
-                          {/* Angka Polos (Tanpa Warna) */}
                           <td className="px-4 py-3 text-center text-gray-700">{row.hadir}</td>
                           <td className="px-4 py-3 text-center text-gray-700">{row.terlambat}</td>
                           <td className="px-4 py-3 text-center text-gray-700">{row.absen}</td>
@@ -306,11 +319,8 @@ const LaporanRekap = () => {
             </div>
           </div>
 
-          {/* Tabel Rekap Tugas */}
           <div className="bg-white rounded-xl shadow p-5 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-green-800">Rekap Penyelesaian Tugas</h3>
-            </div>
+            <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-green-800">Rekap Penyelesaian Tugas</h3></div>
             <div className="overflow-x-auto">
               <table className="w-full table-auto text-sm">
                 <thead>
@@ -329,10 +339,7 @@ const LaporanRekap = () => {
                       data.rekapPenyelesaianTugas.map((row, i) => (
                         <tr key={i} className="hover:bg-green-50 border-b border-gray-50 last:border-0">
                           <td className="px-4 py-3 font-medium text-gray-700">{row.karyawan}</td>
-                          {/* Persentase Polos (Tanpa Background) */}
-                          <td className="px-4 py-3 text-center text-gray-700 font-bold">
-                                {row.selesaiPersen}%
-                          </td>
+                          <td className="px-4 py-3 text-center text-gray-700 font-bold">{row.selesaiPersen}%</td>
                           <td className="px-4 py-3 text-center text-gray-700">{row.tugasAktif}</td>
                         </tr>
                       ))

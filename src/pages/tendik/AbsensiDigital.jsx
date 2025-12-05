@@ -52,7 +52,7 @@ const AbsensiDigital = () => {
 
   // 🔥 LOGIKA BARU: Hanya boleh checkout jika jam >= 16
   const currentHour = now.getHours();
-  const isCheckOutTime = currentHour >= 1; 
+  const isCheckOutTime = currentHour >= 8; 
   
   // Syarat tombol aktif: Status harus "Dalam Shift" DAN Waktu sudah >= 16:00
   const canCheckOut = status === "Dalam Shift" && isCheckOutTime;

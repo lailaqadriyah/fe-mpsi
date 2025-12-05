@@ -167,7 +167,11 @@ const Dashboard = () => {
                         icon={<img src={icon5} alt="task"/>} 
                         onClick={() => navigate("/admin/manajemenTugas", { state: { openAddModal: true } })}
                     />
-                    <QuickButton label="Export Laporan" icon={<img src={icon6} alt="export"/>} />
+                    <QuickButton 
+                        label="Export Laporan" 
+                        icon={<img src={icon6} alt="export"/>} 
+                        onClick={() => navigate("/admin/laporan")} 
+                    />
                 </div>
 
                 {/* TABEL ABSENSI HARI INI (PREVIEW MAX 3) */}

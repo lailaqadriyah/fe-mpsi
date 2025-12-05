@@ -5,12 +5,14 @@ import { FiCalendar, FiSave, FiList, FiKey, FiShield } from "react-icons/fi";
 import Swal from "sweetalert2";
 
 const Settings = () => {
-  // --- STATE PENGATURAN SISTEM (Disimpan di LocalStorage) ---
+  // --- STATE PENGATURAN SISTEM (Integrasi Backend) ---
   const [attendanceConfig, setAttendanceConfig] = useState({
     ruleType: "Waktu Normal",
+    startWorkTime: "08:00", // Default UI
     tolerance: 15,
   });
 
+  // State Laporan (Masih LocalStorage karena belum ada API khusus, opsional bisa dibuatkan)
   const [reportConfig, setReportConfig] = useState({
     isRequired: true,
     deadlineTime: "17:30",
@@ -25,28 +27,73 @@ const Settings = () => {
 
   const [loading, setLoading] = useState(false);
 
-  // Load settings from localStorage on mount
+  // --- LOAD SETTINGS FROM BACKEND & LOCAL STORAGE ---
   useEffect(() => {
-    const savedAttendance = localStorage.getItem("attendanceConfig");
-    const savedReport = localStorage.getItem("reportConfig");
+    const fetchSettings = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
 
-    if (savedAttendance) setAttendanceConfig(JSON.parse(savedAttendance));
+      try {
+        const response = await fetch("http://localhost:4000/api/settings", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Format jam dari {startHour: 8, startMinute: 0} ke "08:00" untuk input type="time"
+          const hh = String(data.startHour).padStart(2, '0');
+          const mm = String(data.startMinute).padStart(2, '0');
+          
+          setAttendanceConfig(prev => ({
+            ...prev,
+            startWorkTime: `${hh}:${mm}`,
+            tolerance: data.tolerance
+          }));
+        }
+      } catch (error) {
+        console.error("Gagal mengambil pengaturan:", error);
+      }
+    };
+
+    fetchSettings();
+
+    // Load report config from local storage (karena belum ada API-nya)
+    const savedReport = localStorage.getItem("reportConfig");
     if (savedReport) setReportConfig(JSON.parse(savedReport));
   }, []);
 
-  // --- HANDLER: SIMPAN PENGATURAN ABSENSI ---
-  const saveAttendanceSettings = () => {
-    localStorage.setItem("attendanceConfig", JSON.stringify(attendanceConfig));
-    Swal.fire({
-      icon: "success",
-      title: "Tersimpan",
-      text: "Pengaturan absensi berhasil diperbarui (Lokal).",
-      timer: 1500,
-      showConfirmButton: false,
-    });
+  // --- HANDLER: SIMPAN PENGATURAN ABSENSI (KE BACKEND) ---
+  const saveAttendanceSettings = async () => {
+    const token = localStorage.getItem("token");
+    
+    // Pecah string "08:00" menjadi jam dan menit
+    const [h, m] = attendanceConfig.startWorkTime.split(':');
+
+    try {
+      const response = await fetch("http://localhost:4000/api/settings", {
+          method: "PUT",
+          headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+              startHour: parseInt(h),
+              startMinute: parseInt(m),
+              tolerance: parseInt(attendanceConfig.tolerance)
+          })
+      });
+  
+      if (response.ok) {
+          Swal.fire("Berhasil", "Pengaturan absensi tersimpan di Server.", "success");
+      } else {
+          Swal.fire("Gagal", "Gagal menyimpan pengaturan", "error");
+      }
+    } catch (error) {
+        Swal.fire("Error", "Koneksi error", "error");
+    }
   };
 
-  // --- HANDLER: SIMPAN PENGATURAN LAPORAN ---
+  // --- HANDLER: SIMPAN PENGATURAN LAPORAN (LOCAL STORAGE) ---
   const saveReportSettings = () => {
     localStorage.setItem("reportConfig", JSON.stringify(reportConfig));
     Swal.fire({
@@ -60,7 +107,7 @@ const Settings = () => {
 
   // --- HANDLER: GANTI PASSWORD (INTEGRASI BACKEND) ---
   const handleChangePassword = async (e) => {
-    e.preventDefault(); // Mencegah reload form
+    e.preventDefault(); 
     const token = localStorage.getItem("token");
 
     if (!passwords.oldPassword || !passwords.newPassword || !passwords.confirmPassword) {
@@ -137,26 +184,19 @@ const Settings = () => {
                   Jadwal Kerja Default
                 </h3>
                 <p className="text-xs text-gray-500 mb-3">
-                  Tentukan aturan standar untuk menghitung keterlambatan.
+                  Tentukan aturan standar untuk jam masuk kerja.
                 </p>
 
                 <div className="mb-2">
                   <label className="text-xs font-bold text-gray-700 block mb-1.5">
-                    Aturan Standar
+                    Jam Masuk Kerja
                   </label>
-                  <div className="relative max-w-md">
-                    <select
-                      value={attendanceConfig.ruleType}
-                      onChange={(e) => setAttendanceConfig({ ...attendanceConfig, ruleType: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none appearance-none bg-white text-gray-700 cursor-pointer"
-                    >
-                      <option>Waktu Normal</option>
-                      <option>Waktu Fleksibel</option>
-                    </select>
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
-                  </div>
+                  <input
+                    type="time"
+                    value={attendanceConfig.startWorkTime}
+                    onChange={(e) => setAttendanceConfig({ ...attendanceConfig, startWorkTime: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none text-gray-700 cursor-pointer max-w-md"
+                  />
                 </div>
               </div>
 
@@ -183,7 +223,7 @@ const Settings = () => {
 
                 <button 
                   onClick={saveAttendanceSettings}
-                  className="mt-3 bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#2E7D32] text-white px-5 py-2 rounded-lg font-bold text-xs shadow-sm flex items-center gap-2 transition-all"
+                  className="mt-3 bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#2E7D32] text-white px-5 py-2 rounded-lg font-bold text-xs shadow-sm flex items-center gap-2 transition-all cursor-pointer"
                 >
                   <FiSave className="text-sm" />
                   Simpan Aturan Absensi
@@ -257,7 +297,7 @@ const Settings = () => {
 
                 <button 
                   onClick={saveReportSettings}
-                  className="mt-3 bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#2E7D32] text-white px-5 py-2 rounded-lg font-bold text-xs shadow-sm flex items-center gap-2 transition-all"
+                  className="mt-3 bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#2E7D32] text-white px-5 py-2 rounded-lg font-bold text-xs shadow-sm flex items-center gap-2 transition-all cursor-pointer"
                 >
                   <FiSave className="text-sm" />
                   Simpan Pengaturan Laporan
