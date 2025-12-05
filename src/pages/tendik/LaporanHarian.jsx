@@ -44,6 +44,7 @@ const LaporanHarian = () => {
       const jenisLaporan = activeTab === "harian" ? "Laporan Harian" : "Laporan Perencanaan";
       
       // Format catatan: [Jenis] Judul ...
+      // Format ini akan dibaca oleh Admin di MonitoringAktivitas.jsx
       const combinedNote = `[${jenisLaporan}] ${judul}\n\nDeskripsi:\n${deskripsi}\n\nCatatan:\n${catatan || "-"}`;
       
       formData.append("note", combinedNote);
@@ -94,7 +95,7 @@ const LaporanHarian = () => {
 
         <div className="mt-8 mx-8">
           
-          {/* --- TAB NAVIGATION (Sesuai Desain) --- */}
+          {/* --- TAB NAVIGATION --- */}
           <div className="flex rounded-xl overflow-hidden border-b border-gray-200 mb-8">
             <button
               onClick={() => setActiveTab("harian")}
@@ -167,7 +168,7 @@ const LaporanHarian = () => {
                   value={deskripsi}
                   onChange={(e) => setDeskripsi(e.target.value)}
                   rows={5}
-                  placeholder="Jelaskan detail kegiatan yang telah dilakukan..."
+                  placeholder="Jelaskan detail kegiatan..."
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-600 outline-none placeholder-gray-400 resize-none"
                 />
               </div>
@@ -186,32 +187,30 @@ const LaporanHarian = () => {
                 />
               </div>
 
-              {/* Dokumentasi (Hanya muncul di Laporan Harian sesuai logika umum, tapi jika desain mau dua-duanya ada, biarkan saja) */}
-              {activeTab === "harian" && (
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2 text-left">
-                        Dokumentasi (opsional)
-                    </label>
-                    <div className="mt-1 border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 transition-colors relative bg-gray-50">
-                        <input
-                        type="file"
-                        onChange={(e) => setDok(e.target.files[0])}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        accept="image/*,.pdf,.doc,.docx"
-                        />
-                        <div className="flex flex-col items-center justify-center text-gray-500 gap-2">
-                            <FiUploadCloud className="text-3xl text-gray-400"/>
-                            <p className="text-sm font-medium">
-                                {dok ? (
-                                <span className="text-green-600 font-bold">File terpilih: {dok.name}</span>
-                                ) : (
-                                "Klik untuk upload foto atau dokumen"
-                                )}
-                            </p>
-                        </div>
+              {/* Dokumentasi (Muncul di Kedua Tab) */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 text-left">
+                    Lampiran (opsional)
+                </label>
+                <div className="mt-1 border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 transition-colors relative bg-gray-50">
+                    <input
+                    type="file"
+                    onChange={(e) => setDok(e.target.files[0])}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    accept="image/*,.pdf,.doc,.docx"
+                    />
+                    <div className="flex flex-col items-center justify-center text-gray-500 gap-2">
+                        <FiUploadCloud className="text-3xl text-gray-400"/>
+                        <p className="text-sm font-medium">
+                            {dok ? (
+                            <span className="text-green-600 font-bold">File terpilih: {dok.name}</span>
+                            ) : (
+                            "Klik untuk upload foto atau dokumen pendukung"
+                            )}
+                        </p>
                     </div>
-                  </div>
-              )}
+                </div>
+              </div>
 
               {/* Tombol Submit */}
               <div className="flex justify-end pt-6">

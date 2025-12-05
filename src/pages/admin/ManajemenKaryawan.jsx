@@ -27,7 +27,7 @@ const ManajemenKaryawan = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPosition, setFilterPosition] = useState("");
 
-  // Form Data (Updated: Added statusKepegawaian)
+  // Form Data
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -36,7 +36,7 @@ const ManajemenKaryawan = () => {
     position: "",
     joinDate: "",
     role: "",
-    statusKepegawaian: "", // <--- Field Baru
+    statusKepegawaian: "", 
   });
 
   const navigate = useNavigate();
@@ -90,7 +90,6 @@ const ManajemenKaryawan = () => {
   useEffect(() => {
     if (location.state?.openAddModal) {
       openAddModal();
-      // bersihkan state supaya refresh tidak auto-open terus
       navigate(location.pathname, { replace: true });
     }
   }, [location.state, location.pathname, navigate]);
@@ -123,7 +122,7 @@ const ManajemenKaryawan = () => {
       position: "",
       joinDate: "",
       role: "",
-      statusKepegawaian: "", // Reset status
+      statusKepegawaian: "",
     });
     setShowModalForm(true);
   };
@@ -143,7 +142,7 @@ const ManajemenKaryawan = () => {
       position: user.position || "",
       joinDate: formattedDate,
       role: user.role?.name || "",
-      statusKepegawaian: user.statusKepegawaian || "", // Isi status dari data user
+      statusKepegawaian: user.statusKepegawaian || "", 
     });
     setSelected(null);
     setShowModalForm(true);
@@ -164,13 +163,6 @@ const ManajemenKaryawan = () => {
       return;
     }
 
-    // Validasi Status Kepegawaian (Opsional, jika wajib bisa di uncomment)
-    /* if (!formData.statusKepegawaian) {
-       Swal.fire("Perhatian", "Silakan pilih status kepegawaian", "warning");
-       return;
-    } 
-    */
-
     const url = isEditMode
       ? `http://localhost:4000/api/admin/users/${editId}`
       : "http://localhost:4000/api/admin/users";
@@ -178,6 +170,14 @@ const ManajemenKaryawan = () => {
     const method = isEditMode ? "PUT" : "POST";
     const payload = { ...formData };
     if (isEditMode && !payload.password) delete payload.password;
+
+    // --- SET ROLE BERDASARKAN POSISI ---
+    // Jika posisi "Admin" dipilih, set role jadi "ADMIN", selain itu "TENAGA"
+    if (payload.position === "Admin") {
+        payload.role = "ADMIN";
+    } else {
+        payload.role = "TENAGA";
+    }
 
     try {
       const response = await fetch(url, {
@@ -318,6 +318,7 @@ const ManajemenKaryawan = () => {
                   className="cursor-pointer w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 appearance-none"
                 >
                   <option value="">Semua Posisi</option>
+                  <option value="Admin">Admin</option>
                   <option value="Pustakawan">Pustakawan</option>
                   <option value="Admin Perpus">Admin Perpus</option>
                   <option value="Staff Sirkulasi">Staff Sirkulasi</option>
@@ -597,6 +598,7 @@ const ManajemenKaryawan = () => {
                         className="cursor-pointer w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none appearance-none bg-gray-50"
                         >
                         <option value="">Pilih Jabatan</option>
+                        <option value="Admin">Admin</option> {/* Opsi Admin Ditambahkan */}
                         <option value="Pustakawan">Pustakawan</option>
                         <option value="Admin Perpus">Admin Perpus</option>
                         <option value="Staff Sirkulasi">Staff Sirkulasi</option>

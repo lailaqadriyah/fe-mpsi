@@ -10,27 +10,31 @@ import {
   FiCalendar, 
   FiDownload,
   FiChevronLeft, 
-  FiChevronRight 
+  FiChevronRight,
+  FiFilter
 } from "react-icons/fi";
 
 const MonitoringAktivitas = () => {
   const [loading, setLoading] = useState(false);
   
-  // --- STATE TERPISAH ---
-  const [tableReports, setTableReports] = useState([]); // Data khusus Tabel
-  const [filteredTableReports, setFilteredTableReports] = useState([]); // Data Tabel setelah filter keyword
-  const [chartData, setChartData] = useState([]); // Data khusus Chart (7 Hari Terakhir)
+  // --- STATE DATA ---
+  const [tableReports, setTableReports] = useState([]); 
+  const [filteredTableReports, setFilteredTableReports] = useState([]); 
+  const [chartData, setChartData] = useState([]); 
 
   const [selectedReport, setSelectedReport] = useState(null);
+
+  // --- STATE FILTER & INPUT ---
+  const [keywordInput, setKeywordInput] = useState(""); 
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  const [activeKeyword, setActiveKeyword] = useState("");
+  const [selectedType, setSelectedType] = useState("Semua Laporan");
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); 
-
-  // Filter State (Kategori dihapus)
-  const [keyword, setKeyword] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
 
   // --- 1. HELPER: PARSE KONTEN LAPORAN ---
   const parseReportContent = (noteContent) => {
@@ -48,17 +52,14 @@ const MonitoringAktivitas = () => {
 
     if (firstLineEndIndex !== -1) {
         const body = noteContent.substring(firstLineEndIndex).trim();
-        
         const extractSection = (text, startKeyword, endKeywords) => {
             const startIndex = text.indexOf(startKeyword);
             if (startIndex === -1) return null;
-            
             let endIndex = text.length;
             endKeywords.forEach(keyword => {
                 const idx = text.indexOf(keyword, startIndex + startKeyword.length);
                 if (idx !== -1 && idx < endIndex) endIndex = idx;
             });
-            
             return text.substring(startIndex + startKeyword.length, endIndex).trim();
         };
 
@@ -72,12 +73,23 @@ const MonitoringAktivitas = () => {
     return { title, category, description, hasil };
   };
 
-  // --- 2. FETCH DATA CHART (KHUSUS 7 HARI TERAKHIR) ---
+  // --- HELPER: WARNA BADGE KATEGORI ---
+  const getCategoryBadgeStyle = (category) => {
+    const lowerCat = category.toLowerCase();
+    if (lowerCat.includes("perencanaan")) {
+        return "bg-blue-100 text-blue-700 border-blue-200"; 
+    } else if (lowerCat.includes("harian")) {
+        return "bg-green-100 text-green-700 border-green-200"; 
+    } else {
+        return "bg-gray-100 text-gray-700 border-gray-200"; 
+    }
+  };
+
+  // --- 2. FETCH DATA ---
   const fetchChartData = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    // Hitung range 7 hari terakhir
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - 6); 
@@ -92,16 +104,12 @@ const MonitoringAktivitas = () => {
 
         if (response.ok) {
             const data = await response.json();
-            
-            // Generate label 7 hari terakhir
             const last7Days = [];
             for (let i = 6; i >= 0; i--) {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
                 last7Days.push(d.toISOString().split('T')[0]); 
             }
-
-            // Map data ke chart
             const counts = last7Days.map(dateStr => {
                 const count = data.filter(item => item.date.startsWith(dateStr)).length;
                 return {
@@ -109,7 +117,6 @@ const MonitoringAktivitas = () => {
                     count: count
                 };
             });
-
             setChartData(counts);
         }
     } catch (error) {
@@ -117,9 +124,10 @@ const MonitoringAktivitas = () => {
     }
   };
 
-  // --- 3. FETCH DATA TABEL (SESUAI FILTER) ---
-  const fetchTableData = async () => {
+  const handleFilterClick = async () => {
     setLoading(true);
+    setActiveKeyword(keywordInput); 
+
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -137,10 +145,8 @@ const MonitoringAktivitas = () => {
 
       if (response.ok) {
         const data = await response.json();
-        
         const processedData = data.map(item => {
             const { title, category, description, hasil } = parseReportContent(item.note);
-            
             return {
                 id: item.id,
                 rawDate: item.date,
@@ -148,16 +154,14 @@ const MonitoringAktivitas = () => {
                     day: "numeric", month: "long", year: "numeric"
                 }),
                 karyawan: item.user?.name || "Unknown",
-                category: category,
+                category: category, 
                 judul: title,
                 deskripsi: description,
                 hasil: hasil,
                 attachments: item.attachments || []
             };
         });
-
         setTableReports(processedData);
-        setFilteredTableReports(processedData);
         setCurrentPage(1); 
       }
     } catch (error) {
@@ -167,35 +171,39 @@ const MonitoringAktivitas = () => {
     }
   };
 
-  // --- INITIAL LOAD ---
   useEffect(() => {
     fetchChartData(); 
-    fetchTableData(); 
+    handleFilterClick(); 
   }, []); 
 
-  // --- 4. FILTERING LOGIC (Client Side - Keyword Saja) ---
+  // --- 4. LOGIKA FILTER KLIEN ---
   useEffect(() => {
     let result = [...tableReports];
 
-    // Filter Keyword (Nama atau Judul)
-    if (keyword) {
-        const lowerKey = keyword.toLowerCase();
+    if (activeKeyword) {
+        const lowerKey = activeKeyword.toLowerCase();
         result = result.filter(r => 
             r.karyawan.toLowerCase().includes(lowerKey) || 
             r.judul.toLowerCase().includes(lowerKey)
         );
     }
 
+    if (selectedType !== "Semua Laporan") {
+        if (selectedType === "Laporan Harian") {
+            result = result.filter(r => r.category.toLowerCase().includes("harian"));
+        } else if (selectedType === "Laporan Perencanaan") {
+            result = result.filter(r => r.category.toLowerCase().includes("perencanaan"));
+        }
+    }
+
     setFilteredTableReports(result);
     setCurrentPage(1); 
-  }, [keyword, tableReports]);
+  }, [tableReports, activeKeyword, selectedType]);
 
-  // --- 5. PAGINATION LOGIC ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredTableReports.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredTableReports.length / itemsPerPage);
-
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
@@ -208,26 +216,30 @@ const MonitoringAktivitas = () => {
           subtitle="Memantau dan mengevaluasi laporan kegiatan harian karyawan"
         />
 
-        {/* Filter Section */}
+        {/* --- FILTER SECTION (SATU BARIS) --- */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8 mt-8 ml-8 mr-8">
-          {/* Ubah grid-cols menjadi 3 karena filter jenis kegiatan dihapus */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {/* Cari Nama */}
-            <div>
+          
+          <div className="flex flex-col lg:flex-row gap-4 items-end">
+            
+            {/* 1. Search Input (Lebar Fleksibel) */}
+            <div className="flex-1 w-full">
               <label className="block text-sm font-bold text-gray-700 mb-2 text-left">
-                Cari Nama/Kata Kunci
+                Cari Nama/Kata Kunci Laporan
               </label>
-              <input
-                type="text"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder="Nama karyawan atau judul..."
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-              />
+              <div className="relative">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+                <input
+                  type="text"
+                  value={keywordInput}
+                  onChange={(e) => setKeywordInput(e.target.value)}
+                  placeholder="Nama karyawan atau kata kunci laporan..."
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                />
+              </div>
             </div>
 
-            {/* Tanggal Mulai */}
-            <div>
+            {/* 2. Tanggal Mulai (Lebar Tetap) */}
+            <div className="w-full lg:w-48">
               <label className="block text-sm font-bold text-gray-700 mb-2 text-left">
                 Tanggal Mulai
               </label>
@@ -235,12 +247,12 @@ const MonitoringAktivitas = () => {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-400 outline-none text-gray-600"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none text-gray-600 cursor-pointer"
               />
             </div>
 
-            {/* Tanggal Akhir */}
-            <div>
+            {/* 3. Tanggal Akhir (Lebar Tetap) */}
+            <div className="w-full lg:w-48">
               <label className="block text-sm font-bold text-gray-700 mb-2 text-left">
                 Tanggal Akhir
               </label>
@@ -248,19 +260,21 @@ const MonitoringAktivitas = () => {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-400 outline-none text-gray-600"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none text-gray-600 cursor-pointer"
               />
             </div>
-          </div>
 
-          <div className="flex justify-start">
-            <button 
-                onClick={fetchTableData} // Hanya refresh tabel
-                className="bg-gradient-to-r from-[#0288D1] to-[#4FC3F7] hover:shadow-lg hover:opacity-90 text-white font-bold py-2.5 px-6 rounded-lg shadow-md flex items-center gap-2 transition-all cursor-pointer"
-            >
-              {loading ? <FiRefreshCw className="animate-spin text-lg"/> : <FiSearch className="text-lg" />}
-              Filter Data
-            </button>
+            {/* 4. Tombol Filter (Sebelah Kanan Tanggal Akhir) */}
+            <div className="w-full lg:w-auto">
+              <button 
+                  onClick={handleFilterClick} 
+                  className="w-full lg:w-auto bg-[#0288D1] hover:bg-[#0277BD] text-white font-bold py-2.5 px-6 rounded-lg shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer h-[42px]"
+              >
+                {loading ? <FiRefreshCw className="animate-spin text-lg"/> : <FiFilter className="text-lg" />}
+                Filter Data
+              </button>
+            </div>
+
           </div>
         </div>
 
@@ -293,15 +307,31 @@ const MonitoringAktivitas = () => {
           </div>
         </div>
 
-        {/* Rincian Laporan (Tabel) */}
+        {/* TABEL RINCIAN LAPORAN */}
         <div className="bg-white rounded-xl shadow p-6 mb-6 ml-8 mr-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-green-800">
+          <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+            <h2 className="font-bold text-lg text-green-800 flex items-center gap-2">
               📋 Rincian Laporan Terbaru
             </h2>
-            <span className="text-xs text-gray-500 font-medium">
-                Halaman {currentPage} dari {totalPages || 1}
-            </span>
+            
+            <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-gray-600">Tampilkan:</span>
+                <div className="relative">
+                    {/* DROPDOWN FILTER TIPE - WARNA NETRAL (PUTIH) */}
+                    <select
+                        value={selectedType}
+                        onChange={(e) => setSelectedType(e.target.value)}
+                        className="appearance-none bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg pl-4 pr-10 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-500 transition-shadow shadow-sm hover:bg-gray-50"
+                    >
+                        <option value="Semua Laporan">Semua Laporan</option>
+                        <option value="Laporan Harian">Laporan Harian</option>
+                        <option value="Laporan Perencanaan">Laporan Perencanaan</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                </div>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -310,6 +340,7 @@ const MonitoringAktivitas = () => {
                 <tr className="text-green-900 text-sm font-bold text-left">
                   <th className="px-6 py-4 rounded-tl-xl">Tanggal</th>
                   <th className="px-6 py-4">Karyawan</th>
+                  <th className="px-6 py-4">Tipe</th>
                   <th className="px-6 py-4">Judul Kegiatan</th>
                   <th className="px-6 py-4 rounded-tr-xl text-center">Aksi</th>
                 </tr>
@@ -317,11 +348,11 @@ const MonitoringAktivitas = () => {
               <tbody className="text-sm text-gray-700">
                 {loading ? (
                     <tr>
-                        <td colSpan="4" className="text-center py-8 text-gray-500">Memuat data...</td>
+                        <td colSpan="5" className="text-center py-8 text-gray-500">Memuat data...</td>
                     </tr>
                 ) : currentItems.length === 0 ? (
                     <tr>
-                        <td colSpan="4" className="text-center py-8 text-gray-500">Tidak ada laporan ditemukan.</td>
+                        <td colSpan="5" className="text-center py-8 text-gray-500">Tidak ada laporan ditemukan.</td>
                     </tr>
                 ) : (
                     currentItems.map((report, i) => (
@@ -332,6 +363,13 @@ const MonitoringAktivitas = () => {
                         <td className="px-6 py-5 font-bold text-gray-800 text-left">
                             {report.karyawan}
                         </td>
+                        
+                        <td className="px-6 py-5">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${getCategoryBadgeStyle(report.category)}`}>
+                                {report.category}
+                            </span>
+                        </td>
+
                         <td className="px-6 py-5 font-medium text-left">
                             {report.judul}
                         </td>
@@ -352,41 +390,46 @@ const MonitoringAktivitas = () => {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-6">
-                <button
-                    onClick={() => paginate(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`p-2 rounded-lg ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-green-700 hover:bg-green-50'}`}
-                >
-                    <FiChevronLeft />
-                </button>
-
-                {[...Array(totalPages)].map((_, i) => (
+            <div className="flex justify-between items-center mt-6 border-t border-gray-100 pt-4">
+                <div className="text-xs text-gray-500 font-medium">
+                    Halaman {currentPage} dari {totalPages}
+                </div>
+                <div className="flex gap-2">
                     <button
-                        key={i + 1}
-                        onClick={() => paginate(i + 1)}
-                        className={`w-8 h-8 text-xs font-bold rounded-lg transition-all ${
-                            currentPage === i + 1
-                                ? 'bg-[#2E7D32] text-white shadow-md'
-                                : 'text-gray-600 hover:bg-gray-100'
-                        }`}
+                        onClick={() => paginate(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className={`p-2 rounded-lg transition-colors ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-green-700 hover:bg-green-50'}`}
                     >
-                        {i + 1}
+                        <FiChevronLeft />
                     </button>
-                ))}
 
-                <button
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`p-2 rounded-lg ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-green-700 hover:bg-green-50'}`}
-                >
-                    <FiChevronRight />
-                </button>
+                    {[...Array(totalPages)].map((_, i) => (
+                        <button
+                            key={i + 1}
+                            onClick={() => paginate(i + 1)}
+                            className={`w-8 h-8 text-xs font-bold rounded-lg transition-all ${
+                                currentPage === i + 1
+                                    ? 'bg-[#2E7D32] text-white shadow-md'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            {i + 1}
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={() => paginate(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className={`p-2 rounded-lg transition-colors ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-green-700 hover:bg-green-50'}`}
+                    >
+                        <FiChevronRight />
+                    </button>
+                </div>
             </div>
           )}
         </div>
 
-        {/* MODAL DETAIL */}
+        {/* MODAL DETAIL (Sama) */}
         {selectedReport && (
           <Modal 
             title={
@@ -399,7 +442,6 @@ const MonitoringAktivitas = () => {
           >
             <div className="text-sm text-gray-700 space-y-5 mt-2 text-left">
               
-              {/* Header Info */}
               <div className="flex justify-between items-start border-b border-dashed border-gray-200 pb-3">
                   <div>
                     <p className="text-[10px] text-gray-400 mb-0.5 uppercase font-bold">Karyawan</p>
@@ -413,19 +455,16 @@ const MonitoringAktivitas = () => {
                   </div>
               </div>
 
-              {/* Judul & Kategori */}
               <div>
-                <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold">Judul Kegiatan</p>
+                <p className="text-[10px] text-gray-400 mb-2 uppercase font-bold">Judul Kegiatan</p>
                 <div className="flex items-center gap-2">
-                    {/* Badge kategori tetap ada di detail untuk informasi */}
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-600 border border-green-200">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getCategoryBadgeStyle(selectedReport.category)}`}>
                         {selectedReport.category}
                     </span>
                     <p className="font-bold text-base text-gray-800">{selectedReport.judul}</p>
                 </div>
               </div>
 
-              {/* Deskripsi Kegiatan */}
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                 <p className="text-xs font-bold text-[#1B5E20] mb-2 uppercase">Deskripsi Kegiatan</p>
                 <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
@@ -433,7 +472,6 @@ const MonitoringAktivitas = () => {
                 </p>
               </div>
 
-              {/* Catatan / Hasil */}
               <div>
                 <p className="text-xs font-bold text-[#1B5E20] mb-1 uppercase">Catatan / Kendala</p>
                 <p className="text-gray-700 text-sm leading-relaxed border-l-4 border-orange-200 pl-3 py-1">
@@ -441,7 +479,6 @@ const MonitoringAktivitas = () => {
                 </p>
               </div>
 
-              {/* Dokumentasi */}
               {selectedReport.attachments && selectedReport.attachments.length > 0 ? (
                   <div className="pt-2">
                     <p className="text-xs font-bold text-[#1B5E20] mb-2 uppercase">Dokumentasi</p>

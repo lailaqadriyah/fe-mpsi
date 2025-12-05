@@ -9,9 +9,9 @@ const Profil = () => {
     nama: "",
     email: "",
     posisi: "",
-    tanggalGabung: "",
+    statusKepegawaian: "", // Ganti tanggalGabung jadi statusKepegawaian
     telepon: "",
-    alamat: "", // Tetap disimpan di state untuk ditampilkan (read-only)
+    alamat: "", 
   });
 
   // State untuk Form Ganti Password
@@ -36,20 +36,13 @@ const Profil = () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Format Tanggal
-        const joinDate = data.createdAt 
-            ? new Date(data.createdAt).toLocaleDateString("id-ID", {
-                day: "numeric", month: "long", year: "numeric"
-              }) 
-            : "-";
-
         setProfile({
           nama: data.name || "",
           email: data.email || "",
           posisi: data.position || data.role || "-",
-          tanggalGabung: joinDate,
+          statusKepegawaian: data.statusKepegawaian || "-", // Ambil status
           telepon: data.phone || "",
-          alamat: data.alamat || "-", // Read-only
+          alamat: data.alamat || "-", 
         });
       }
     } catch (error) {
@@ -73,7 +66,6 @@ const Profil = () => {
     const token = localStorage.getItem("token");
 
     try {
-      // Payload hanya mengirim nama dan telepon (alamat diabaikan)
       const response = await fetch("http://localhost:4000/api/users/me", {
         method: "PUT",
         headers: {
@@ -88,12 +80,11 @@ const Profil = () => {
 
       if (response.ok) {
         Swal.fire("Berhasil", "Data profil berhasil diperbarui", "success");
-        // Update data di localStorage agar Topbar juga ikut berubah
         const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
         storedUser.name = profile.nama;
         localStorage.setItem("user", JSON.stringify(storedUser));
         
-        fetchProfile(); // Refresh data
+        fetchProfile(); 
       } else {
         Swal.fire("Gagal", "Gagal memperbarui profil", "error");
       }
@@ -138,7 +129,7 @@ const Profil = () => {
 
       if (response.ok) {
         Swal.fire("Berhasil", "Password berhasil diubah", "success");
-        setPasswords({ oldPassword: "", newPassword: "", confirmPassword: "" }); // Reset form
+        setPasswords({ oldPassword: "", newPassword: "", confirmPassword: "" }); 
       } else {
         Swal.fire("Gagal", result.message || "Gagal mengubah password", "error");
       }
@@ -174,7 +165,7 @@ const Profil = () => {
             </div>
           </div>
 
-          {/* Detail Profil (Read Only) */}
+          {/* Detail Profil */}
           <section className="mb-10">
             <div className="flex items-center gap-2 mb-4">
               <svg className="w-5 h-5 text-[#43A047]" fill="currentColor" viewBox="0 0 20 20">
@@ -198,16 +189,17 @@ const Profil = () => {
                 </p>
               </div>
 
+              {/* KOTAK INI YANG DIUBAH */}
               <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                <p className="text-xs text-gray-400 mb-1">Tanggal Bergabung</p>
+                <p className="text-xs text-gray-400 mb-1">Status Kepegawaian</p>
                 <p className="text-sm font-bold text-green-900">
-                  {profile.tanggalGabung}
+                  {profile.statusKepegawaian}
                 </p>
               </div>
             </div>
           </section>
 
-          {/* Edit Kontak & Data Pribadi (ALAMAT DIHILANGKAN DARI SINI) */}
+          {/* Edit Kontak & Data Pribadi */}
           <form onSubmit={saveProfile} className="mb-10">
             <div className="flex items-center gap-2 mb-4">
               <svg className="w-5 h-5 text-[#43A047]" fill="currentColor" viewBox="0 0 20 20">
@@ -219,7 +211,6 @@ const Profil = () => {
             </div>
 
             <div className="space-y-5">
-              {/* Nama Lengkap */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   Nama Lengkap
@@ -233,7 +224,6 @@ const Profil = () => {
                 />
               </div>
 
-              {/* Nomor Telepon (Full Width karena Alamat dihapus) */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   Nomor Telepon
@@ -270,7 +260,6 @@ const Profil = () => {
             </div>
 
             <div className="space-y-5">
-              {/* Password Lama */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   Password Lama
@@ -285,7 +274,6 @@ const Profil = () => {
                 />
               </div>
 
-              {/* Password Baru */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   Password Baru
@@ -300,7 +288,6 @@ const Profil = () => {
                 />
               </div>
 
-              {/* Konfirmasi Password Baru */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   Konfirmasi Password Baru
