@@ -4,6 +4,7 @@ import Aside from "../../components/Aside";
 import Topbar from "../../components/Topbar";
 import {
   FiEye,
+  FiEyeOff,
   FiEdit,
   FiTrash2,
   FiCreditCard,
@@ -27,6 +28,9 @@ const ManajemenKaryawan = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPosition, setFilterPosition] = useState("");
 
+  // State untuk toggle password visibility
+  const [showPassword, setShowPassword] = useState(false);
+
   // Form Data
   const [formData, setFormData] = useState({
     name: "",
@@ -36,7 +40,7 @@ const ManajemenKaryawan = () => {
     position: "",
     joinDate: "",
     role: "",
-    statusKepegawaian: "", 
+    statusKepegawaian: "",
   });
 
   const navigate = useNavigate();
@@ -142,7 +146,7 @@ const ManajemenKaryawan = () => {
       position: user.position || "",
       joinDate: formattedDate,
       role: user.role?.name || "",
-      statusKepegawaian: user.statusKepegawaian || "", 
+      statusKepegawaian: user.statusKepegawaian || "",
     });
     setSelected(null);
     setShowModalForm(true);
@@ -174,9 +178,9 @@ const ManajemenKaryawan = () => {
     // --- SET ROLE BERDASARKAN POSISI ---
     // Jika posisi "Admin" dipilih, set role jadi "ADMIN", selain itu "TENAGA"
     if (payload.position === "Admin") {
-        payload.role = "ADMIN";
+      payload.role = "ADMIN";
     } else {
-        payload.role = "TENAGA";
+      payload.role = "TENAGA";
     }
 
     try {
@@ -267,20 +271,20 @@ const ManajemenKaryawan = () => {
   const getInitials = (name) =>
     name
       ? name
-          .split(" ")
-          .map((n) => n[0])
-          .slice(0, 2)
-          .join("")
-          .toUpperCase()
+        .split(" ")
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
       : "US";
 
   const formatDate = (d) =>
     d
       ? new Date(d).toLocaleDateString("id-ID", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
       : "-";
 
   return (
@@ -297,7 +301,7 @@ const ManajemenKaryawan = () => {
         <div className="flex items-start gap-6 mb-8 p-8">
           <div className="flex-1 bg-white rounded-xl shadow px-4 py-6">
             <div className="flex flex-col md:flex-row items-center gap-4">
-              
+
               {/* Search Bar */}
               <div className="flex-1 relative w-full">
                 <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -320,7 +324,7 @@ const ManajemenKaryawan = () => {
                   <option value="">Semua Posisi</option>
                   <option value="Admin">Admin</option>
                   <option value="Pustakawan">Pustakawan</option>
-                  <option value="Admin Perpus">Admin Perpus</option>
+                  <option value="Administrasi Perpus">Administrasi Perpus</option>
                   <option value="Staff Sirkulasi">Staff Sirkulasi</option>
                   <option value="Staff Referensi">Staff Referensi</option>
                   <option value="Tenaga Teknis">Tenaga Teknis</option>
@@ -377,9 +381,9 @@ const ManajemenKaryawan = () => {
                     </p>
                     {/* Tampilkan Status Kepegawaian di Card jika ada */}
                     {user.statusKepegawaian && (
-                        <span className="inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-100 mb-1 mr-1">
-                            {user.statusKepegawaian}
-                        </span>
+                      <span className="inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-100 mb-1 mr-1">
+                        {user.statusKepegawaian}
+                      </span>
                     )}
                     <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full bg-green-100 text-green-700">
                       Aktif
@@ -432,37 +436,37 @@ const ManajemenKaryawan = () => {
                   </button>
                 </div>
                 <div className="flex gap-2">
-                    <span className="inline-block px-3 py-0.5 text-[11px] font-semibold rounded-full bg-green-50 text-green-700 border border-green-100">
+                  <span className="inline-block px-3 py-0.5 text-[11px] font-semibold rounded-full bg-green-50 text-green-700 border border-green-100">
                     {selected.role?.name || "Karyawan"}
+                  </span>
+                  {/* Badge Status Kepegawaian */}
+                  {selected.statusKepegawaian && (
+                    <span className="inline-block px-3 py-0.5 text-[11px] font-bold rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                      {selected.statusKepegawaian}
                     </span>
-                    {/* Badge Status Kepegawaian */}
-                    {selected.statusKepegawaian && (
-                        <span className="inline-block px-3 py-0.5 text-[11px] font-bold rounded-full bg-blue-50 text-blue-600 border border-blue-100">
-                            {selected.statusKepegawaian}
-                        </span>
-                    )}
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
-                  <div className="group">
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">
-                      Posisi
-                    </label>
-                    <p className="text-base font-medium text-gray-800 border-b border-dashed border-gray-200 pb-2">
-                      {selected.position || "-"}
-                    </p>
-                  </div>
-                  <div className="group">
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">
-                      Status Kepegawaian
-                    </label>
-                    <p className="text-base font-medium text-gray-800 border-b border-dashed border-gray-200 pb-2">
-                      {selected.statusKepegawaian || "-"}
-                    </p>
-                  </div>
+                <div className="group">
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">
+                    Posisi
+                  </label>
+                  <p className="text-base font-medium text-gray-800 border-b border-dashed border-gray-200 pb-2">
+                    {selected.position || "-"}
+                  </p>
+                </div>
+                <div className="group">
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">
+                    Status Kepegawaian
+                  </label>
+                  <p className="text-base font-medium text-gray-800 border-b border-dashed border-gray-200 pb-2">
+                    {selected.statusKepegawaian || "-"}
+                  </p>
+                </div>
               </div>
 
               <div className="group">
@@ -553,24 +557,38 @@ const ManajemenKaryawan = () => {
                   </span>
                 )}
               </label>
-              <input
-                type="password"
-                required={!isEditMode}
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none"
-                placeholder={
-                  isEditMode
-                    ? "Biarkan kosong untuk password lama"
-                    : "Password untuk login"
-                }
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required={!isEditMode}
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  className="w-full px-4 py-2.5 pr-12 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                  placeholder={
+                    isEditMode
+                      ? "Biarkan kosong untuk password lama"
+                      : "Password untuk login"
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-green-600 transition-colors p-1"
+                  title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                >
+                  {showPassword ? (
+                    <FiEyeOff className="text-lg" />
+                  ) : (
+                    <FiEye className="text-lg" />
+                  )}
+                </button>
+              </div>
             </div>
             <div>
               <label className="text-xs font-bold text-gray-700 block mb-1.5">
-                Nomor Telepon
+                Nomor Telepon (Opsional)
               </label>
               <input
                 type="tel"
@@ -582,58 +600,58 @@ const ManajemenKaryawan = () => {
                 placeholder="+62 812-3456-7890"
               />
             </div>
-            
+
             {/* Field Posisi & Status Kepegawaian (Side by Side) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label className="text-xs font-bold text-gray-700 block mb-1.5">
-                        Posisi/Jabatan
-                    </label>
-                    <div className="relative">
-                        <select
-                        value={formData.position}
-                        onChange={(e) =>
-                            setFormData({ ...formData, position: e.target.value })
-                        }
-                        className="cursor-pointer w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none appearance-none bg-gray-50"
-                        >
-                        <option value="">Pilih Jabatan</option>
-                        <option value="Admin">Admin</option> {/* Opsi Admin Ditambahkan */}
-                        <option value="Pustakawan">Pustakawan</option>
-                        <option value="Admin Perpus">Admin Perpus</option>
-                        <option value="Staff Sirkulasi">Staff Sirkulasi</option>
-                        <option value="Staff Referensi">Staff Referensi</option>
-                        <option value="Tenaga Teknis">Tenaga Teknis</option>
-                        </select>
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-                        ▼
-                        </div>
-                    </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700 block mb-1.5">
+                  Posisi/Jabatan
+                </label>
+                <div className="relative">
+                  <select
+                    value={formData.position}
+                    onChange={(e) =>
+                      setFormData({ ...formData, position: e.target.value })
+                    }
+                    className="cursor-pointer w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none appearance-none bg-gray-50"
+                  >
+                    <option value="">Pilih Jabatan</option>
+                    <option value="Admin">Admin</option> {/* Opsi Admin Ditambahkan */}
+                    <option value="Pustakawan">Pustakawan</option>
+                    <option value="Administrasi Perpus">Administrasi Perpus</option>
+                    <option value="Staff Sirkulasi">Staff Sirkulasi</option>
+                    <option value="Staff Referensi">Staff Referensi</option>
+                    <option value="Tenaga Teknis">Tenaga Teknis</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                    ▼
+                  </div>
                 </div>
+              </div>
 
-                {/* --- FIELD BARU: STATUS KEPEGAWAIAN --- */}
-                <div>
-                    <label className="text-xs font-bold text-gray-700 block mb-1.5">
-                        Status Kepegawaian
-                    </label>
-                    <div className="relative">
-                        <select
-                        value={formData.statusKepegawaian}
-                        onChange={(e) =>
-                            setFormData({ ...formData, statusKepegawaian: e.target.value })
-                        }
-                        className="cursor-pointer w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none appearance-none bg-gray-50"
-                        >
-                        <option value="">Pilih Status</option>
-                        <option value="PNS">PNS</option>
-                        <option value="PTT">PTT</option>
-                        <option value="PHL">PHL</option>
-                        </select>
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-                        ▼
-                        </div>
-                    </div>
+              {/* --- FIELD BARU: STATUS KEPEGAWAIAN --- */}
+              <div>
+                <label className="text-xs font-bold text-gray-700 block mb-1.5">
+                  Status Kepegawaian
+                </label>
+                <div className="relative">
+                  <select
+                    value={formData.statusKepegawaian}
+                    onChange={(e) =>
+                      setFormData({ ...formData, statusKepegawaian: e.target.value })
+                    }
+                    className="cursor-pointer w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none appearance-none bg-gray-50"
+                  >
+                    <option value="">Pilih Status</option>
+                    <option value="PNS">PNS</option>
+                    <option value="PTT">PTT</option>
+                    <option value="PHL">PHL</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                    ▼
+                  </div>
                 </div>
+              </div>
             </div>
 
             <div>

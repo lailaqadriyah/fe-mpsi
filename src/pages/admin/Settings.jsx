@@ -43,7 +43,7 @@ const Settings = () => {
           // Format jam dari {startHour: 8, startMinute: 0} ke "08:00" untuk input type="time"
           const hh = String(data.startHour).padStart(2, '0');
           const mm = String(data.startMinute).padStart(2, '0');
-          
+
           setAttendanceConfig(prev => ({
             ...prev,
             startWorkTime: `${hh}:${mm}`,
@@ -65,31 +65,31 @@ const Settings = () => {
   // --- HANDLER: SIMPAN PENGATURAN ABSENSI (KE BACKEND) ---
   const saveAttendanceSettings = async () => {
     const token = localStorage.getItem("token");
-    
+
     // Pecah string "08:00" menjadi jam dan menit
     const [h, m] = attendanceConfig.startWorkTime.split(':');
 
     try {
       const response = await fetch("http://localhost:4000/api/settings", {
-          method: "PUT",
-          headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({
-              startHour: parseInt(h),
-              startMinute: parseInt(m),
-              tolerance: parseInt(attendanceConfig.tolerance)
-          })
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          startHour: parseInt(h),
+          startMinute: parseInt(m),
+          tolerance: parseInt(attendanceConfig.tolerance)
+        })
       });
-  
+
       if (response.ok) {
-          Swal.fire("Berhasil", "Pengaturan absensi tersimpan di Server.", "success");
+        Swal.fire("Berhasil", "Pengaturan absensi tersimpan di Server.", "success");
       } else {
-          Swal.fire("Gagal", "Gagal menyimpan pengaturan", "error");
+        Swal.fire("Gagal", "Gagal menyimpan pengaturan", "error");
       }
     } catch (error) {
-        Swal.fire("Error", "Koneksi error", "error");
+      Swal.fire("Error", "Koneksi error", "error");
     }
   };
 
@@ -107,7 +107,7 @@ const Settings = () => {
 
   // --- HANDLER: GANTI PASSWORD (INTEGRASI BACKEND) ---
   const handleChangePassword = async (e) => {
-    e.preventDefault(); 
+    e.preventDefault();
     const token = localStorage.getItem("token");
 
     if (!passwords.oldPassword || !passwords.newPassword || !passwords.confirmPassword) {
@@ -167,7 +167,7 @@ const Settings = () => {
         />
 
         <div className="space-y-6 mt-8 mb-8 ml-8 mr-8 md:ml-24 md:mr-24">
-          
+
           {/* 1. ATURAN ABSENSI */}
           <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
             <div className="flex items-center gap-3 mb-8 border-b border-gray-100 pb-4">
@@ -221,7 +221,7 @@ const Settings = () => {
                   />
                 </div>
 
-                <button 
+                <button
                   onClick={saveAttendanceSettings}
                   className="mt-3 bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#2E7D32] text-white px-5 py-2 rounded-lg font-bold text-xs shadow-sm flex items-center gap-2 transition-all cursor-pointer"
                 >
@@ -232,79 +232,6 @@ const Settings = () => {
             </div>
           </section>
 
-          {/* 2. PENGATURAN TUGAS & LAPORAN */}
-          <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-            <div className="flex items-center gap-3 mb-8 border-b border-gray-100 pb-4">
-              <FiList className="text-2xl text-green-700" />
-              <h2 className="text-xl font-bold text-green-800">
-                Pengaturan Tugas & Laporan
-              </h2>
-            </div>
-
-            <div className="space-y-8">
-              {/* Wajib Lapor Harian */}
-              <div>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h3 className="text-base font-bold text-green-700 mb-1">
-                      Wajib Lapor Harian
-                    </h3>
-                    <p className="text-xs text-gray-500 max-w-md">
-                      Aktifkan jika karyawan wajib mengirimkan laporan harian melalui sistem.
-                    </p>
-                  </div>
-
-                  {/* Toggle Switch */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-700">
-                      {reportConfig.isRequired ? "Wajib" : "Tidak Wajib"}
-                    </span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={reportConfig.isRequired}
-                        onChange={(e) => setReportConfig({ ...reportConfig, isRequired: e.target.checked })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#43A047]"></div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-dashed border-gray-200"></div>
-
-              {/* Batas Waktu Laporan */}
-              <div>
-                <h3 className="text-base font-bold text-green-700 mb-1">
-                  Batas Waktu Laporan
-                </h3>
-                <p className="text-xs text-gray-500 mb-3">
-                  Batas jam terakhir pengiriman laporan harian per hari kerja.
-                </p>
-
-                <div className="mb-2">
-                  <label className="text-xs font-bold text-gray-700 block mb-1.5">
-                    Jam Batas Akhir Kirim Laporan
-                  </label>
-                  <input
-                    type="time"
-                    value={reportConfig.deadlineTime}
-                    onChange={(e) => setReportConfig({ ...reportConfig, deadlineTime: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none text-gray-700 cursor-pointer max-w-md"
-                  />
-                </div>
-
-                <button 
-                  onClick={saveReportSettings}
-                  className="mt-3 bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#2E7D32] text-white px-5 py-2 rounded-lg font-bold text-xs shadow-sm flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  <FiSave className="text-sm" />
-                  Simpan Pengaturan Laporan
-                </button>
-              </div>
-            </div>
-          </section>
 
           {/* 3. KEAMANAN & AKUN (INTEGRASI BACKEND) */}
           <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
@@ -366,7 +293,7 @@ const Settings = () => {
                 </div>
 
                 <div className="mt-6">
-                  <button 
+                  <button
                     onClick={handleChangePassword}
                     disabled={loading}
                     className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-[#2E7D32] text-white px-5 py-2.5 rounded-lg font-bold text-xs shadow-sm flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"

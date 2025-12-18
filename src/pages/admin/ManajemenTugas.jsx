@@ -21,12 +21,12 @@ const ManajemenTugas = () => {
     const [tasks, setTasks] = useState([]);
     const [users, setUsers] = useState([]);
     const [showTaskModal, setShowTaskModal] = useState(false);
-    
+
     // State untuk Detail & Edit
     const [selectedTask, setSelectedTask] = useState(null);
-    const [editingTask, setEditingTask] = useState(null); 
+    const [editingTask, setEditingTask] = useState(null);
     const [activeTab, setActiveTab] = useState(0);
-    
+
     const [statsData, setStatsData] = useState({
         pending: 0,
         progress: 0,
@@ -41,7 +41,7 @@ const ManajemenTugas = () => {
     const initials = (name) => name ? name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() : "XY";
 
     const mapStatusBEtoFE = (status) => {
-        switch(status) {
+        switch (status) {
             case 'PENDING': return 'Pending';
             case 'DALAM_PROGERSS': return 'On Progress';
             case 'SELESAI': return 'Selesai';
@@ -52,7 +52,7 @@ const ManajemenTugas = () => {
     };
 
     const mapPrioritasBEtoFE = (prio) => {
-        switch(prio) {
+        switch (prio) {
             case 'TINGGI': return 'Prioritas Tinggi';
             case 'NORMAL': return 'Prioritas Normal';
             default: return 'Normal';
@@ -61,7 +61,7 @@ const ManajemenTugas = () => {
 
     const checkIsOverdue = (dateString, status) => {
         if (!dateString || status === 'Selesai') return false;
-        
+
         const deadline = new Date(dateString);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -86,7 +86,7 @@ const ManajemenTugas = () => {
             const resTasks = await fetch("http://localhost:4000/api/admin/tasks", {
                 headers: { "Authorization": `Bearer ${token}` }
             });
-            
+
             if (resTasks.ok) {
                 const dataTasks = await resTasks.json();
                 const formattedTasks = dataTasks.map(t => ({
@@ -95,14 +95,15 @@ const ManajemenTugas = () => {
                     deskripsi: t.description || "-",
                     status: mapStatusBEtoFE(t.status),
                     assigneeId: t.assigneeId,
-                    rawDate: t.dueDate, 
+                    rawDate: t.dueDate,
                     rawPrioritas: t.prioritas,
-                    nama: t.assignee ? t.assignee.name : "Belum Ditunjuk",
-                    initial: initials(t.assignee ? t.assignee.name : ""),
+                    // Gunakan assigneeName jika assignee null (user sudah dihapus)
+                    nama: t.assignee ? t.assignee.name : (t.assigneeName || "Belum Ditunjuk"),
+                    initial: initials(t.assignee ? t.assignee.name : (t.assigneeName || "")),
                     deadline: t.dueDate ? new Date(t.dueDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) : "-",
                     prioritas: mapPrioritasBEtoFE(t.prioritas),
                     // 🔥 MENANGKAP KOMENTAR DARI BACKEND
-                    komentar: t.comments || [] 
+                    komentar: t.comments || []
                 }));
                 setTasks(formattedTasks);
             }
@@ -119,7 +120,7 @@ const ManajemenTugas = () => {
             });
             if (response.ok) {
                 const result = await response.json();
-                setUsers(result.data || []); 
+                setUsers(result.data || []);
             }
         } catch (error) {
             console.error("Gagal mengambil data user:", error);
@@ -141,10 +142,10 @@ const ManajemenTugas = () => {
     // --- HANDLERS ---
     const handleSaveTask = async (payload) => {
         const isEdit = !!editingTask;
-        const url = isEdit 
-            ? `http://localhost:4000/api/tasks/${editingTask.id}` 
+        const url = isEdit
+            ? `http://localhost:4000/api/tasks/${editingTask.id}`
             : "http://localhost:4000/api/tasks";
-        
+
         const method = isEdit ? "PUT" : "POST";
 
         try {
@@ -240,8 +241,8 @@ const ManajemenTugas = () => {
                 {/* ACTIONS */}
                 <div className="flex flex-col gap-4">
                     <div className="flex justify-end mr-8">
-                        <button 
-                            onClick={handleAddNewClick} 
+                        <button
+                            onClick={handleAddNewClick}
                             className="bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] hover:bg-green-700 text-white px-5 py-2.5 rounded-lg shadow-md font-medium text-sm flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
                         >
                             <FiPlus className="text-lg" /> Buat Tugas Baru
@@ -253,11 +254,10 @@ const ManajemenTugas = () => {
                             <button
                                 key={i}
                                 onClick={() => setActiveTab(i)}
-                                className={`flex-1 text-center px-4 py-3 text-sm font-semibold transition-all duration-200 rounded-lg whitespace-nowrap ${
-                                    i === activeTab 
-                                    ? 'bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white shadow-sm' 
+                                className={`flex-1 text-center px-4 py-3 text-sm font-semibold transition-all duration-200 rounded-lg whitespace-nowrap ${i === activeTab
+                                    ? 'bg-gradient-to-r from-[#2E7D32] to-[#66BB6A] text-white shadow-sm'
                                     : 'text-gray-600 hover:bg-gray-50'
-                                }`}
+                                    }`}
                             >
                                 {t}
                             </button>
@@ -269,7 +269,7 @@ const ManajemenTugas = () => {
                 <div className="space-y-5 p-8">
                     {(() => {
                         const filtered = activeTab === 0 ? tasks : tasks.filter(t => t.status === tabs[activeTab]);
-                        
+
                         if (filtered.length === 0) {
                             return (
                                 <div className="bg-white p-10 rounded-xl shadow-sm border border-gray-100 text-center text-gray-500">
@@ -282,10 +282,10 @@ const ManajemenTugas = () => {
                             const isOverdue = checkIsOverdue(task.rawDate, task.status);
 
                             return (
-                                <div key={i} 
+                                <div key={i}
                                     className={`
                                         bg-white p-6 rounded-2xl shadow-sm border transition-shadow hover:shadow-md
-                                        ${isOverdue 
+                                        ${isOverdue
                                             ? 'border-l-4 border-l-red-500 border-t-gray-100 border-r-gray-100 border-b-gray-100'
                                             : 'border-gray-100'
                                         }
@@ -306,7 +306,7 @@ const ManajemenTugas = () => {
 
                                     {/* Meta Data Row */}
                                     <div className="flex flex-wrap items-center gap-y-3 gap-x-6 text-sm mb-6 border-b border-gray-50 pb-4">
-                                        
+
                                         {/* User */}
                                         <div className="flex items-center gap-2">
                                             <div className="w-8 h-8 bg-green-700 text-white rounded-full flex items-center justify-center font-bold text-xs">
@@ -356,10 +356,10 @@ const ManajemenTugas = () => {
                 {/* MODAL - CREATE / EDIT TASK */}
                 {showTaskModal && (
                     <Modal title={editingTask ? "Edit Tugas" : "Buat Tugas Baru"} onClose={() => setShowTaskModal(false)}>
-                        <TaskForm 
+                        <TaskForm
                             userList={users}
                             initialData={editingTask}
-                            onCancel={() => setShowTaskModal(false)} 
+                            onCancel={() => setShowTaskModal(false)}
                             onSave={handleSaveTask}
                         />
                     </Modal>
@@ -369,8 +369,8 @@ const ManajemenTugas = () => {
                 {selectedTask && (
                     <Modal title="Detail Tugas" onClose={() => setSelectedTask(null)}>
                         {(() => {
-                             const isOverdueDetail = checkIsOverdue(selectedTask.rawDate, selectedTask.status);
-                             return (
+                            const isOverdueDetail = checkIsOverdue(selectedTask.rawDate, selectedTask.status);
+                            return (
                                 <div className="space-y-4 text-sm">
                                     <div>
                                         <h4 className="font-extrabold text-lg text-green-800 mb-1">{selectedTask.judul}</h4>
@@ -383,7 +383,7 @@ const ManajemenTugas = () => {
                                             )}
                                         </div>
                                     </div>
-                                    
+
                                     <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                                         <div><p className="text-xs text-gray-500 uppercase">Ditugaskan Kepada</p><p className="font-semibold text-gray-800">{selectedTask.nama}</p></div>
                                         <div>
@@ -406,7 +406,7 @@ const ManajemenTugas = () => {
                                             <FiMessageSquare className="text-blue-600 text-lg" />
                                             <h5 className="font-bold text-gray-800">Riwayat Catatan & Progres</h5>
                                         </div>
-                                        
+
                                         <div className="bg-gray-50 rounded-xl p-4 max-h-60 overflow-y-auto space-y-3 border border-gray-200">
                                             {selectedTask.komentar && selectedTask.komentar.length > 0 ? (
                                                 selectedTask.komentar.map((komen, idx) => (
@@ -433,7 +433,7 @@ const ManajemenTugas = () => {
                                                 ))
                                             ) : (
                                                 <div className="text-center py-6 text-gray-400 italic flex flex-col items-center gap-2">
-                                                    <FiMessageSquare className="text-2xl opacity-20"/>
+                                                    <FiMessageSquare className="text-2xl opacity-20" />
                                                     <span className="text-xs">Belum ada catatan progres untuk tugas ini.</span>
                                                 </div>
                                             )}
@@ -445,7 +445,7 @@ const ManajemenTugas = () => {
                                         <button onClick={() => setSelectedTask(null)} className="px-5 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium text-gray-700 cursor-pointer">Tutup</button>
                                     </div>
                                 </div>
-                             );
+                            );
                         })()}
                     </Modal>
                 )}
@@ -486,7 +486,7 @@ const TaskForm = ({ onSave, userList, initialData }) => {
             setDeskripsi(initialData.deskripsi !== "-" ? initialData.deskripsi : "");
             setAssigneeId(initialData.assigneeId || "");
             setPrioritas(initialData.rawPrioritas || "TINGGI");
-            
+
             if (initialData.rawDate) {
                 const dateObj = new Date(initialData.rawDate);
                 const yyyy = dateObj.getFullYear();
@@ -499,16 +499,16 @@ const TaskForm = ({ onSave, userList, initialData }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if(!assigneeId) {
+        if (!assigneeId) {
             Swal.fire("Gagal", "Silakan pilih karyawan terlebih dahulu", "warning");
             return;
         }
-        onSave({ 
-            title: judul, 
-            description: deskripsi, 
+        onSave({
+            title: judul,
+            description: deskripsi,
             assigneeId: parseInt(assigneeId),
-            dueDate: deadline, 
-            prioritas: prioritas 
+            dueDate: deadline,
+            prioritas: prioritas
         });
     };
 
@@ -525,15 +525,18 @@ const TaskForm = ({ onSave, userList, initialData }) => {
             <div>
                 <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Ditugaskan Kepada</label>
                 <div className="relative">
-                    <select 
-                        value={assigneeId} 
-                        onChange={e => setAssigneeId(e.target.value)} 
+                    <select
+                        value={assigneeId}
+                        onChange={e => setAssigneeId(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition appearance-none bg-gray-100 text-gray-700 cursor-pointer"
                     >
                         <option value="" disabled>Pilih Karyawan</option>
-                        {userList.map((u) => (
-                            <option key={u.id} value={u.id}>{u.name} ({u.position || u.role?.name})</option>
-                        ))}
+                        {userList
+                            .filter(u => u.role?.name !== 'ADMIN') // Filter: hanya non-admin
+                            .map((u) => (
+                                <option key={u.id} value={u.id}>{u.name} ({u.position || u.role?.name})</option>
+                            ))
+                        }
                     </select>
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -549,9 +552,9 @@ const TaskForm = ({ onSave, userList, initialData }) => {
             <div>
                 <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Prioritas</label>
                 <div className="relative">
-                    <select 
-                        value={prioritas} 
-                        onChange={e => setPrioritas(e.target.value)} 
+                    <select
+                        value={prioritas}
+                        onChange={e => setPrioritas(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition appearance-none bg-gray-100 text-gray-700 cursor-pointer"
                     >
                         <option value="TINGGI">Tinggi</option>

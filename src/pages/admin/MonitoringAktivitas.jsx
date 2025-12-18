@@ -282,7 +282,7 @@ const MonitoringAktivitas = () => {
         <div className="bg-white rounded-xl shadow p-6 mb-6 ml-8 mr-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-green-800 flex items-center gap-2">
-              📊 Tren Laporan Harian (7 Hari Terakhir)
+              Tren Laporan Harian (7 Hari Terakhir)
             </h2>
             <div className="text-sm text-gray-500">
               {new Date().toLocaleDateString("id-ID", { month: 'long', year: 'numeric' })}
@@ -311,7 +311,7 @@ const MonitoringAktivitas = () => {
         <div className="bg-white rounded-xl shadow p-6 mb-6 ml-8 mr-8">
           <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
             <h2 className="font-bold text-lg text-green-800 flex items-center gap-2">
-              📋 Rincian Laporan Terbaru
+              Rincian Laporan Terbaru
             </h2>
             
             <div className="flex items-center gap-3">
