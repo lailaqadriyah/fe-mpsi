@@ -69,6 +69,29 @@ const RiwayatAktivitas = () => {
     return { title, category, description, catatan, hasil };
   };
 
+  // Convert plain text with http(s) links into clickable anchors that open in a new tab
+  // Preserve newline characters entered by the admin
+  const linkifyText = (text) => {
+    if (!text) return null;
+    const urlRe = /(https?:\/\/[\S]+)/g;
+    const lines = text.split(/\r?\n/);
+    return lines.map((line, lineIdx) => (
+      <React.Fragment key={lineIdx}>
+        {line.split(urlRe).map((part, idx) => {
+          if (/^https?:\/\/[\S]+$/.test(part)) {
+            return (
+              <a key={idx} href={part} target="_blank" rel="noopener noreferrer" className="text-green-600 underline break-words">
+                {part}
+              </a>
+            );
+          }
+          return <span key={idx}>{part}</span>;
+        })}
+        {lineIdx < lines.length - 1 && <br />}
+      </React.Fragment>
+    ));
+  };
+
   const fetchReports = async () => {
     const token = localStorage.getItem("token");
     const userStr = localStorage.getItem("user");
@@ -183,8 +206,8 @@ const RiwayatAktivitas = () => {
                         <h3 className="font-bold text-[#2E7D32] text-base mb-2 text-left group-hover:text-[#1B5E20] transition-colors">{r.title}</h3>
 
                         {/* Deskripsi (Truncated) */}
-                        <p className="text-sm text-gray-600 leading-relaxed mb-4 text-left line-clamp-2">
-                            {r.description}
+                        <p className="text-sm text-gray-600 leading-relaxed mb-4 text-left line-clamp-2 whitespace-pre-wrap">
+                            {linkifyText(r.description)}
                         </p>
 
                         {/* Footer */}
@@ -282,7 +305,7 @@ const RiwayatAktivitas = () => {
                     <div>
                         <p className="text-xs font-bold text-gray-400 uppercase mb-2">Deskripsi Kegiatan</p>
                         <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                            <p className="leading-relaxed whitespace-pre-wrap">{selectedReport.description}</p>
+                            <p className="leading-relaxed whitespace-pre-wrap">{linkifyText(selectedReport.description)}</p>
                         </div>
                     </div>
 

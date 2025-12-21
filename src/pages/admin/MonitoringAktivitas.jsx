@@ -85,6 +85,29 @@ const MonitoringAktivitas = () => {
     }
   };
 
+  // Convert plain text with http(s) links into clickable anchors that open in a new tab
+  // Preserve newline characters entered by the admin
+  const linkifyText = (text) => {
+    if (!text) return null;
+    const urlRe = /(https?:\/\/[\S]+)/g;
+    const lines = text.split(/\r?\n/);
+    return lines.map((line, lineIdx) => (
+      <React.Fragment key={lineIdx}>
+        {line.split(urlRe).map((part, idx) => {
+          if (/^https?:\/\/[\S]+$/.test(part)) {
+            return (
+              <a key={idx} href={part} target="_blank" rel="noopener noreferrer" className="text-green-600 underline break-words">
+                {part}
+              </a>
+            );
+          }
+          return <span key={idx}>{part}</span>;
+        })}
+        {lineIdx < lines.length - 1 && <br />}
+      </React.Fragment>
+    ));
+  };
+
   // --- 2. FETCH DATA ---
   const fetchChartData = async () => {
     const token = localStorage.getItem("token");
@@ -468,7 +491,7 @@ const MonitoringAktivitas = () => {
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                 <p className="text-xs font-bold text-[#1B5E20] mb-2 uppercase">Deskripsi Kegiatan</p>
                 <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-                    {selectedReport.deskripsi}
+                    {linkifyText(selectedReport.deskripsi)}
                 </p>
               </div>
 

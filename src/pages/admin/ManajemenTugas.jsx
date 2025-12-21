@@ -59,6 +59,29 @@ const ManajemenTugas = () => {
         }
     };
 
+    // Convert plain text with http(s) links into clickable anchors that open in a new tab
+    // Preserve newline characters entered by the admin
+    const linkifyText = (text) => {
+        if (!text) return null;
+        const urlRe = /(https?:\/\/[\S]+)/g;
+        const lines = text.split(/\r?\n/);
+        return lines.map((line, lineIdx) => (
+            <React.Fragment key={lineIdx}>
+                {line.split(urlRe).map((part, idx) => {
+                    if (/^https?:\/\/[\S]+$/.test(part)) {
+                        return (
+                            <a key={idx} href={part} target="_blank" rel="noopener noreferrer" className="text-green-600 underline break-words">
+                                {part}
+                            </a>
+                        );
+                    }
+                    return <span key={idx}>{part}</span>;
+                })}
+                {lineIdx < lines.length - 1 && <br />}
+            </React.Fragment>
+        ));
+    };
+
     const checkIsOverdue = (dateString, status) => {
         if (!dateString || status === 'Selesai') return false;
 
@@ -300,8 +323,8 @@ const ManajemenTugas = () => {
                                     </div>
 
                                     {/* Description */}
-                                    <p className="text-gray-500 text-sm mb-6 line-clamp-2 text-left">
-                                        {task.deskripsi}
+                                    <p className="text-gray-500 text-sm mb-6 line-clamp-2 text-left whitespace-pre-wrap">
+                                        {linkifyText(task.deskripsi)}
                                     </p>
 
                                     {/* Meta Data Row */}
@@ -397,7 +420,7 @@ const ManajemenTugas = () => {
 
                                     <div>
                                         <p className="text-xs text-gray-500 uppercase mb-1">Deskripsi</p>
-                                        <p className="text-gray-700 bg-white p-3 border rounded-md">{selectedTask.deskripsi}</p>
+                                        <p className="text-gray-700 bg-white p-3 border rounded-md whitespace-pre-wrap">{linkifyText(selectedTask.deskripsi)}</p>
                                     </div>
 
                                     {/* 🔥 SECTION BARU: CATATAN / KOMENTAR */}

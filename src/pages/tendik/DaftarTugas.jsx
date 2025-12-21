@@ -52,6 +52,29 @@ const DaftarTugas = () => {
     return deadline < today;
   };
 
+  // Convert plain text with http(s) links into clickable anchors that open in a new tab
+  // Preserve newline characters entered by the admin
+  const linkifyText = (text) => {
+    if (!text) return null;
+    const urlRe = /(https?:\/\/[\S]+)/g;
+    const lines = text.split(/\r?\n/);
+    return lines.map((line, lineIdx) => (
+      <React.Fragment key={lineIdx}>
+        {line.split(urlRe).map((part, idx) => {
+          if (/^https?:\/\/[\S]+$/.test(part)) {
+            return (
+              <a key={idx} href={part} target="_blank" rel="noopener noreferrer" className="text-green-600 underline break-words">
+                {part}
+              </a>
+            );
+          }
+          return <span key={idx}>{part}</span>;
+        })}
+        {lineIdx < lines.length - 1 && <br />}
+      </React.Fragment>
+    ));
+  };
+
   // --- API FETCH TASKS ---
   const fetchTasks = async () => {
     const token = localStorage.getItem("token");
@@ -232,7 +255,7 @@ const DaftarTugas = () => {
                       </span>
                   </div>
 
-                  <p className="text-gray-500 text-sm mb-5 leading-relaxed max-w-4xl">{task.deskripsi}</p>
+                  <p className="text-gray-500 text-sm mb-5 leading-relaxed max-w-4xl whitespace-pre-wrap">{linkifyText(task.deskripsi)}</p>
 
                   <div className="flex flex-wrap items-center gap-y-3 gap-x-6 text-xs font-medium text-gray-500 mb-6">
                       <div className={`flex items-center gap-1.5 ${isOverdue ? "text-red-600 font-bold bg-red-50 px-2 py-1 rounded-md" : ""}`}>
@@ -313,7 +336,7 @@ const DaftarTugas = () => {
                     </div>
                     <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                         <p className="text-xs text-gray-500 uppercase font-bold mb-1">Deskripsi</p>
-                        <p className="text-gray-700 text-sm leading-relaxed">{selectedTask.deskripsi}</p>
+                        <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{linkifyText(selectedTask.deskripsi)}</p>
                     </div>
                     
                     {/* Tampilkan Catatan Pribadi di Detail */}
