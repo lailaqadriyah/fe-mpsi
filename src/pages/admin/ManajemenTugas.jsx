@@ -546,7 +546,13 @@ const TaskForm = ({ onSave, userList, initialData }) => {
             <div>
                 <label className="text-xs font-bold text-gray-800 block mb-1.5 text-left">Deadline</label>
                 <div className="relative w-full">
-                    <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition text-gray-600 cursor-pointer" />
+                    <input
+                        type="date"
+                        value={deadline}
+                        onChange={e => setDeadline(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-green-500 outline-none transition text-gray-600 cursor-pointer"
+                    />
                 </div>
             </div>
             <div>
